@@ -944,32 +944,43 @@ else:
             </div>
         """, unsafe_allow_html=True)
         
-        # Dataset preview
-        st.write("### 🔍 Dataset Preview")
-        df = pd.read_csv("network_attack_dataset.csv")
-        st.dataframe(df.head(10), use_container_width=True)
-        
-        # Dataset statistics
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("📋 Total Records", f"{len(df):,}")
-        with col2:
-            st.metric("📊 Features", f"{len(df.columns)-1}")
-        with col3:
-            st.metric("🎯 Attack Records", f"{len(df[df['label']=='attack']):,}")
-        with col4:
-            st.metric("✅ Normal Records", f"{len(df[df['label']=='normal']):,}")
-        
-        # Download section
-        st.markdown("### 📥 Download Dataset")
-        with open("network_attack_dataset.csv", "rb") as file:
-            st.download_button(
-                label="📥 Download Complete Dataset (CSV)",
-                data=file,
-                file_name="network_attack_dataset.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+        try:
+            # Full path to the dataset
+            import os
+            dataset_path = os.path.join(os.path.dirname(__file__), "network_attack_dataset.csv")
+            
+            # Dataset preview
+            st.write("### 🔍 Dataset Preview")
+            df = pd.read_csv(dataset_path)
+            st.dataframe(df.head(10), use_container_width=True)
+            
+            # Dataset statistics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("📋 Total Records", f"{len(df):,}")
+            with col2:
+                st.metric("📊 Features", f"{len(df.columns)-1}")
+            with col3:
+                st.metric("🎯 Attack Records", f"{len(df[df['label']=='attack']):,}")
+            with col4:
+                st.metric("✅ Normal Records", f"{len(df[df['label']=='normal']):,}")
+            
+            # Download section with better error handling
+            st.markdown("### 📥 Download Dataset")
+            try:
+                with open(dataset_path, "rb") as file:
+                    csv_data = file.read()
+                    st.download_button(
+                        label="📥 Download Complete Dataset (CSV)",
+                        data=csv_data,
+                        file_name="network_attack_dataset.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                st.success("✅ Dataset is ready for download! Click the button above to start downloading.")
+            except Exception as e:
+                st.error(f"❌ Error preparing download: {str(e)}")
+                st.info("💡 If you're having trouble downloading, please try accessing from a desktop browser or contact support.")
             
         # Dataset documentation
         with st.expander("📋 View Complete Dataset Documentation"):
