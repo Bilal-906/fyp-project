@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+import time
 import seaborn as sns
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -296,8 +298,21 @@ else:
                 accept_multiple_files=False
             )
         else:
-            st.sidebar.success("✅ Using built-in sample dataset")
-            uploaded_file = "network_attack_dataset.csv"
+            st.sidebar.markdown("### 📊 Choose Sample Dataset")
+            sample_dataset = st.sidebar.radio(
+                "Select a dataset to use:",
+                ["Network Attack Dataset (Latest)", "Historical Network Data"],
+                help="Choose which sample dataset to use for training"
+            )
+            
+            if sample_dataset == "Network Attack Dataset (Latest)":
+                st.sidebar.success("✅ Using latest network attack dataset")
+                uploaded_file = "network_attack_dataset.csv"
+            else:
+                st.sidebar.success("✅ Using historical network data")
+                uploaded_file = "old data.csv"
+                
+            st.sidebar.info("ℹ️ Sample datasets are pre-processed and ready for training")
         
         st.sidebar.markdown("---")
         st.sidebar.header("⚙️ Model Configuration")
@@ -336,10 +351,38 @@ else:
         if uploaded_file:
             try:
                 # Load data
+                uploaded_file_path = None
                 if isinstance(uploaded_file, str):  # Using sample data
                     df = pd.read_csv(uploaded_file)
-                else:  # User uploaded file
-                    df = pd.read_csv(uploaded_file)
+                    # Remember which sample dataset was used so Test Model can reuse it
+                    st.session_state['last_used_dataset'] = uploaded_file
+                    uploaded_file_path = uploaded_file
+                else:  # User uploaded file (Streamlit UploadedFile)
+                    # Save uploaded file to disk so it can be reused later in the session
+                    uploads_dir = os.path.join(os.path.dirname(__file__), 'uploaded_datasets')
+                    os.makedirs(uploads_dir, exist_ok=True)
+
+                    # Create a safe filename and avoid collisions
+                    orig_name = getattr(uploaded_file, 'name', f'uploaded_{int(time.time())}.csv')
+                    safe_name = os.path.basename(orig_name)
+                    dest_path = os.path.join(uploads_dir, safe_name)
+                    if os.path.exists(dest_path):
+                        base, ext = os.path.splitext(safe_name)
+                        dest_path = os.path.join(uploads_dir, f"{base}_{int(time.time())}{ext}")
+
+                    # Write uploaded bytes to disk
+                    with open(dest_path, 'wb') as f:
+                        try:
+                            # UploadedFile supports getbuffer()
+                            f.write(uploaded_file.getbuffer())
+                        except Exception:
+                            # Fallback to read()
+                            f.write(uploaded_file.read())
+
+                    # Load dataframe from saved file and remember path for reuse
+                    df = pd.read_csv(dest_path)
+                    st.session_state['last_used_dataset'] = dest_path
+                    uploaded_file_path = dest_path
                 
                 st.markdown(f"""
                 <div class="metric-box">
@@ -468,15 +511,20 @@ else:
                             st.write(f"⚖️ Balancing classes using {balance_method}...")
                             
                             if balance_method == "SMOTETomek":
-                                balancer = SMOTETomek(random_state=42, n_jobs=-1)
+                                # Some samplers don't accept n_jobs in all versions; omit to be compatible
+                                balancer = SMOTETomek(random_state=42)
                             elif balance_method == "SMOTEENN":
-                                balancer = SMOTEENN(random_state=42, n_jobs=-1)
+                                balancer = SMOTEENN(random_state=42)
                             elif balance_method == "BorderlineSMOTE":
-                                balancer = BorderlineSMOTE(random_state=42, n_jobs=-1)
+                                balancer = BorderlineSMOTE(random_state=42)
                             else:
-                                balancer = SMOTE(random_state=42, n_jobs=-1)
-                            
-                            X_train_bal, y_train_bal = balancer.fit_resample(X_train_scaled, y_train)
+                                balancer = SMOTE(random_state=42)
+
+                            # fit_resample may return 2- or 3-element tuples depending on version;
+                            # index explicitly to avoid tuple-unpack type errors from static analysis.
+                            res = balancer.fit_resample(X_train_scaled, y_train)
+                            X_train_bal = res[0]
+                            y_train_bal = res[1]
                             st.write(f"✅ Balanced: {len(y_train):,} → {len(y_train_bal):,} samples")
                             
                             # Step 9: Train models
@@ -637,6 +685,17 @@ else:
                                 'label_encoder': le,
                                 'feature_names': X.columns.tolist()
                             }
+                            # Persist which dataset was used for training (if any) so Test mode can reuse it
+                            try:
+                                # If we saved the uploaded file during load, use that path
+                                training_dataset_path = uploaded_file_path  # may be None if not set
+                            except NameError:
+                                training_dataset_path = None
+
+                            if training_dataset_path is None and isinstance(uploaded_file, str):
+                                training_dataset_path = uploaded_file
+
+                            st.session_state.model_artifacts['training_dataset_path'] = training_dataset_path
                             
                             # Display results
                             st.markdown("---")
@@ -750,12 +809,45 @@ else:
         else:
             st.success("✅ Trained model is ready for testing!")
             
-            test_file = st.file_uploader("📁 Upload Test Dataset (CSV)", type="csv")
-            
-            if test_file:
+            # Allow re-using the dataset used during training (if available) or uploading a new test CSV
+            # Safely obtain a string path to the training dataset if available
+            training_path = None
+            ma = st.session_state.get('model_artifacts')
+            if ma and isinstance(ma.get('training_dataset_path'), str):
+                training_path = ma.get('training_dataset_path')
+            elif st.session_state.get('last_used_dataset') and isinstance(st.session_state.get('last_used_dataset'), str):
+                training_path = st.session_state.get('last_used_dataset')
+
+            if training_path:
+                test_choice = st.radio("📁 Test data source", ["Use training dataset", "Upload test CSV"], index=0)
+            else:
+                test_choice = "Upload test CSV"
+
+            test_df = None
+            if test_choice == "Use training dataset":
+                if training_path:
+                    try:
+                        test_df = pd.read_csv(training_path)
+                        st.success(f"✅ Loaded training dataset for testing: {os.path.basename(training_path)}")
+                    except Exception as e:
+                        st.error(f"❌ Failed to load training dataset: {str(e)}")
+                        st.info("Please upload a test CSV file instead.")
+                        test_choice = "Upload test CSV"
+                else:
+                    st.error("❌ No valid training dataset path available. Please upload a test CSV file.")
+                    test_choice = "Upload test CSV"
+
+            if test_choice == "Upload test CSV":
+                test_file = st.file_uploader("📁 Upload Test Dataset (CSV)", type="csv")
+                if test_file:
+                    try:
+                        test_df = pd.read_csv(test_file)
+                    except Exception as e:
+                        st.error(f"❌ Error loading test file: {str(e)}")
+                        test_df = None
+
+            if test_df is not None:
                 try:
-                    test_df = pd.read_csv(test_file)
-                    
                     st.markdown(f"""
                     <div class="metric-box">
                         <h3>📊 Test Dataset Loaded</h3>
@@ -770,7 +862,12 @@ else:
                         with st.spinner("🔄 Making predictions..."):
                             try:
                                 artifacts = st.session_state.model_artifacts
-                                
+
+                                # Guard: ensure artifacts are present and valid
+                                if artifacts is None:
+                                    st.error("❌ No model artifacts available. Please train a model first or load a saved model.")
+                                    st.stop()
+
                                 # Check for labels
                                 has_labels = 'label' in test_df.columns
                                 
@@ -869,6 +966,10 @@ else:
                                         y_true_encoded = y_true.values
                                     
                                     if has_labels:
+                                        # Ensure inputs are numpy arrays for sklearn metric type expectations
+                                        y_true_encoded = np.asarray(y_true_encoded)
+                                        predictions = np.asarray(predictions)
+
                                         test_acc = accuracy_score(y_true_encoded, predictions) * 100
                                         test_prec = precision_score(y_true_encoded, predictions, average='weighted', zero_division=0) * 100
                                         test_rec = recall_score(y_true_encoded, predictions, average='weighted', zero_division=0) * 100
@@ -949,9 +1050,11 @@ else:
             import os
             dataset_path = os.path.join(os.path.dirname(__file__), "network_attack_dataset.csv")
             
-            # Dataset preview
+            # Dataset preview with file size info
             st.write("### 🔍 Dataset Preview")
             df = pd.read_csv(dataset_path)
+            file_size = os.path.getsize(dataset_path) / (1024 * 1024)  # Convert to MB
+            st.info(f"📦 File Size: {file_size:.2f} MB")
             st.dataframe(df.head(10), use_container_width=True)
             
             # Dataset statistics
@@ -982,10 +1085,37 @@ else:
                 st.error(f"❌ Error preparing download: {str(e)}")
                 st.info("💡 If you're having trouble downloading, please try accessing from a desktop browser or contact support.")
             
+        except Exception as e:
+            # Handle errors that occur while loading or reading the dataset file
+            st.error(f"❌ Error loading dataset: {str(e)}")
+            import traceback
+            with st.expander("🔍 View Error Details"):
+                st.code(traceback.format_exc())
+
         # Dataset documentation
         with st.expander("📋 View Complete Dataset Documentation"):
-            with open("Dataset discription/dis.txt", "r") as doc_file:
-                st.markdown(doc_file.read())
+            doc_path = os.path.join(os.path.dirname(__file__), "Dataset discription", "dis.txt")
+            doc_text = ""
+            try:
+                # Prefer utf-8, but fall back to common Windows encodings if necessary
+                with open(doc_path, "r", encoding="utf-8") as doc_file:
+                    doc_text = doc_file.read()
+            except UnicodeDecodeError:
+                try:
+                    with open(doc_path, "r", encoding="cp1252") as doc_file:
+                        doc_text = doc_file.read()
+                except Exception:
+                    try:
+                        with open(doc_path, "r", encoding="latin-1") as doc_file:
+                            doc_text = doc_file.read()
+                    except Exception as e:
+                        doc_text = f"❌ Error reading documentation file: {e}"
+            except FileNotFoundError:
+                doc_text = "⚠️ Documentation file not found."
+            except Exception as e:
+                doc_text = f"❌ Error reading documentation file: {e}"
+
+            st.markdown(doc_text)
                 
         # Feature descriptions
         st.markdown("### 🔰 Quick Feature Guide")

@@ -1,4 +1,14 @@
 .venv/
+venv/
+__pycache__/
+*.pyc
+*.pkl
+*.h5
+uploaded_datasets/
+*.log
+.DS_Store
+.env
+.venv/
 __pycache__/
 *.pyc
 .DS_Store

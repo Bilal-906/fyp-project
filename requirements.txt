@@ -1,3 +1,17 @@
+streamlit
+pandas
+numpy
+scikit-learn
+imbalanced-learn
+joblib
+matplotlib
+seaborn
+plotly
+pillow
+h5py
+scipy
+# tensorflow is optional on Streamlit Cloud (large). Uncomment if needed.
+# tensorflow
 # Requirements for Streamlit app deployment
 streamlit>=1.24.0
 pandas>=1.5.0
