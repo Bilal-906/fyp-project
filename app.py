@@ -231,6 +231,49 @@ def create_advanced_features(X, y):
         return X
 
 
+# --- Helpers: safe, memory-friendly CSV reading ---------------------------------
+@st.cache_data(show_spinner=False)
+def read_csv_preview(path, nrows=10):
+    """Read only the first nrows of a CSV using safe fallbacks to avoid huge memory use."""
+    try:
+        return pd.read_csv(path, nrows=nrows)
+    except Exception:
+        # fallback to a more permissive encoding/engine
+        return pd.read_csv(path, nrows=nrows, encoding='cp1252', engine='python')
+
+
+@st.cache_data(show_spinner=False)
+def count_csv_lines(path):
+    """Return number of records (excluding header) without loading full file into memory."""
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            # subtract header
+            count = sum(1 for _ in f) - 1
+            return max(count, 0)
+    except Exception:
+        # fallback: try binary read (slightly faster sometimes)
+        try:
+            with open(path, 'rb') as f:
+                count = sum(1 for _ in f) - 1
+                return max(count, 0)
+        except Exception:
+            return None
+
+
+@st.cache_data(show_spinner=False)
+def compute_label_counts(path):
+    """Compute value counts for 'label' column by reading CSV in chunks to save memory."""
+    try:
+        counts = {}
+        for chunk in pd.read_csv(path, usecols=['label'], chunksize=200_000):
+            vc = chunk['label'].value_counts()
+            for k, v in vc.items():
+                counts[k] = counts.get(k, 0) + int(v)
+        return pd.Series(counts).sort_values(ascending=False)
+    except Exception:
+        return None
+
+
 # Initialize session state
 if 'trained_model' not in st.session_state:
     st.session_state.trained_model = None
@@ -341,9 +384,9 @@ else:
         
         n_estimators = st.sidebar.slider(
             "🌲 Number of Trees",
-            min_value=300,
-            max_value=1500,
-            value=800,
+            min_value=100,
+            max_value=1000,
+            value=300,
             step=100,
             help="More trees = better accuracy but slower training"
         )
@@ -543,7 +586,7 @@ else:
                                     class_weight='balanced_subsample',
                                     criterion='gini',
                                     random_state=42,
-                                    n_jobs=-1
+                                    n_jobs=1
                                 ),
                                 'Extra Trees': ExtraTreesClassifier(
                                     n_estimators=n_estimators,
@@ -555,7 +598,7 @@ else:
                                     class_weight='balanced_subsample',
                                     criterion='gini',
                                     random_state=42,
-                                    n_jobs=-1
+                                    n_jobs=1
                                 ),
                                 'Gradient Boosting': GradientBoostingClassifier(
                                     n_estimators=min(500, n_estimators),
@@ -577,14 +620,15 @@ else:
                                         n_estimators=100,
                                         max_depth=25,
                                         class_weight='balanced',
-                                        random_state=42
+                                        random_state=42,
+                                        n_jobs=1
                                     ),
                                     n_estimators=50,
                                     max_samples=0.8,
                                     max_features=0.8,
                                     bootstrap=True,
                                     random_state=42,
-                                    n_jobs=-1
+                                    n_jobs=1
                                 )
                             }
                             
@@ -614,7 +658,7 @@ else:
                                 estimators=trained_models,
                                 voting='soft',
                                 weights=[2, 2, 1.5, 1, 1],
-                                n_jobs=-1
+                                n_jobs=1
                             )
                             voting_model.fit(X_train_bal, y_train_bal)
                             
@@ -639,7 +683,7 @@ else:
                                     class_weight='balanced'
                                 ),
                                 cv=5,
-                                n_jobs=-1,
+                                n_jobs=1,
                                 passthrough=False
                             )
                             stacking_model.fit(X_train_bal, y_train_bal)
@@ -827,8 +871,25 @@ else:
             if test_choice == "Use training dataset":
                 if training_path:
                     try:
-                        test_df = pd.read_csv(training_path)
-                        st.success(f"✅ Loaded training dataset for testing: {os.path.basename(training_path)}")
+                        # Check file size and avoid auto-loading very large files on constrained hosts
+                        try:
+                            tp_size = os.path.getsize(training_path) / (1024 * 1024)
+                        except Exception:
+                            tp_size = None
+
+                        if tp_size and tp_size > 20:
+                            st.warning(f"⚠️ Training dataset is large ({tp_size:.1f} MB). Loading it may exceed memory limits.")
+                            load_large = st.checkbox("I understand and want to load the full training dataset for testing")
+                            if not load_large:
+                                st.info("Please upload a smaller test CSV or enable the checkbox to load the full dataset.")
+                                test_choice = "Upload test CSV"
+                                test_df = None
+                            else:
+                                test_df = pd.read_csv(training_path)
+                                st.success(f"✅ Loaded training dataset for testing: {os.path.basename(training_path)}")
+                        else:
+                            test_df = pd.read_csv(training_path)
+                            st.success(f"✅ Loaded training dataset for testing: {os.path.basename(training_path)}")
                     except Exception as e:
                         st.error(f"❌ Failed to load training dataset: {str(e)}")
                         st.info("Please upload a test CSV file instead.")
@@ -1050,23 +1111,49 @@ else:
             import os
             dataset_path = os.path.join(os.path.dirname(__file__), "network_attack_dataset.csv")
             
-            # Dataset preview with file size info
+            # Dataset preview with file size info (memory-friendly)
             st.write("### 🔍 Dataset Preview")
-            df = pd.read_csv(dataset_path)
-            file_size = os.path.getsize(dataset_path) / (1024 * 1024)  # Convert to MB
-            st.info(f"📦 File Size: {file_size:.2f} MB")
-            st.dataframe(df.head(10), use_container_width=True)
-            
-            # Dataset statistics
+            try:
+                preview_df = read_csv_preview(dataset_path, nrows=10)
+            except Exception:
+                preview_df = None
+
+            try:
+                file_size = os.path.getsize(dataset_path) / (1024 * 1024)  # Convert to MB
+                st.info(f"📦 File Size: {file_size:.2f} MB")
+            except Exception:
+                st.info("📦 File Size: N/A")
+
+            if preview_df is not None:
+                st.dataframe(preview_df, use_container_width=True)
+            else:
+                st.info("Preview not available for this file.")
+
+            # Dataset statistics (computed without loading full CSV)
             col1, col2, col3, col4 = st.columns(4)
+            total_records = count_csv_lines(dataset_path)
+            try:
+                cols = pd.read_csv(dataset_path, nrows=0).columns
+                num_features = max(len(cols) - 1, 0)
+            except Exception:
+                num_features = "N/A"
+
+            label_counts = compute_label_counts(dataset_path)
+
             with col1:
-                st.metric("📋 Total Records", f"{len(df):,}")
+                st.metric("📋 Total Records", f"{total_records:,}" if total_records is not None else "N/A")
             with col2:
-                st.metric("📊 Features", f"{len(df.columns)-1}")
+                st.metric("📊 Features", f"{num_features}")
             with col3:
-                st.metric("🎯 Attack Records", f"{len(df[df['label']=='attack']):,}")
+                if isinstance(label_counts, pd.Series) and 'attack' in label_counts.index:
+                    st.metric("🎯 Attack Records", f"{int(label_counts['attack']):,}")
+                else:
+                    st.metric("🎯 Attack Records", "N/A")
             with col4:
-                st.metric("✅ Normal Records", f"{len(df[df['label']=='normal']):,}")
+                if isinstance(label_counts, pd.Series) and 'normal' in label_counts.index:
+                    st.metric("✅ Normal Records", f"{int(label_counts['normal']):,}")
+                else:
+                    st.metric("✅ Normal Records", "N/A")
             
             # Download section with better error handling
             st.markdown("### 📥 Download Dataset")
@@ -1289,7 +1376,7 @@ else:
     **Tips for 90%+ Accuracy:**
     - Use clean, labeled data
     - Enable feature engineering
-    - Use 800-1500 estimators
+    - Use 300-1000 estimators (lower on constrained hosts)
     - Try SMOTETomek balancing
     - Use 10-15% test split
     """)
