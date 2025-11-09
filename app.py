@@ -252,17 +252,17 @@ if not st.session_state.authenticated:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.markdown("<h3 style='text-align: center;'>Login</h3>", unsafe_allow_html=True)
-            email = st.text_input("📧 Email", value="user@example.com")
-            password = st.text_input("🔑 Password", type="password", value="password123")
+            email = st.text_input("📧 Email", value="")
+            password = st.text_input("🔑 Password", type="password", value="")
             login = st.form_submit_button("🚀 Login", use_container_width=True)
             
             if login:
-                if email == "user@example.com" and password == "password123":
+                if email == "bilal123@gmail.com" and password == "bilal123":
                     st.session_state.authenticated = True
                     st.success("✅ Login Successful!")
                     st.rerun()
                 else:
-                    st.error("❌ Invalid credentials. Use: user@example.com / password123")
+                    st.error("❌ Invalid credentials. Please try again.")
 else:
     # Sidebar navigation
     st.sidebar.title("🎯 Navigation")
