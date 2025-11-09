@@ -248,35 +248,6 @@ if not st.session_state.authenticated:
         </div>
     """, unsafe_allow_html=True)
     
-    # Dataset Download Section
-    st.markdown("""
-        <div class="dataset-box">
-            <h2>📊 Download Training Dataset</h2>
-            <p>Get the network attack dataset used to train this model. Contains features extracted from network traffic for attack detection.</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("📥 Download Network Attack Dataset"):
-        with open("network_attack_dataset.csv", "rb") as file:
-            st.download_button(
-                label="📥 Confirm Download",
-                data=file,
-                file_name="network_attack_dataset.csv",
-                mime="text/csv"
-            )
-            
-    st.markdown("""
-        <div style='margin-top: 1rem;'>
-            <h3>📋 Dataset Details</h3>
-            <ul>
-                <li>200 numeric features extracted from network traffic</li>
-                <li>Protocol type, service, and connection flags</li>
-                <li>Binary classification: Attack vs Normal</li>
-                <li>Balanced dataset with training/test split</li>
-            </ul>
-        </div>
-    """, unsafe_allow_html=True)
-    
     with st.form(key='login_form'):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -295,7 +266,7 @@ if not st.session_state.authenticated:
 else:
     # Sidebar navigation
     st.sidebar.title("🎯 Navigation")
-    mode = st.sidebar.radio("Select Mode", ["📚 Train Model", "🧪 Test Model", "📊 View Results"], index=0)
+    mode = st.sidebar.radio("Select Mode", ["📚 Train Model", "🧪 Test Model", "📊 View Results", "📥 Dataset"], index=0)
     
     if mode == "📚 Train Model":
         st.sidebar.markdown("---")
@@ -935,6 +906,69 @@ else:
     
     elif mode == "📊 View Results":
         st.write("## 📊 TRAINING RESULTS DASHBOARD")
+        
+    elif mode == "📥 Dataset":
+        st.markdown("""
+            <div class="dataset-box">
+                <h1>📊 Network Attack Detection Dataset</h1>
+                <p style="font-size: 1.2rem;">Download and explore the dataset used to train this model. Contains sophisticated features extracted from network traffic for attack detection.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Dataset preview
+        st.write("### 🔍 Dataset Preview")
+        df = pd.read_csv("network_attack_dataset.csv")
+        st.dataframe(df.head(10), use_container_width=True)
+        
+        # Dataset statistics
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("📋 Total Records", f"{len(df):,}")
+        with col2:
+            st.metric("📊 Features", f"{len(df.columns)-1}")
+        with col3:
+            st.metric("🎯 Attack Records", f"{len(df[df['label']=='attack']):,}")
+        with col4:
+            st.metric("✅ Normal Records", f"{len(df[df['label']=='normal']):,}")
+        
+        # Download section
+        st.markdown("### 📥 Download Dataset")
+        with open("network_attack_dataset.csv", "rb") as file:
+            st.download_button(
+                label="📥 Download Complete Dataset (CSV)",
+                data=file,
+                file_name="network_attack_dataset.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+        # Dataset documentation
+        with st.expander("📋 View Complete Dataset Documentation"):
+            with open("Dataset discription/dis.txt", "r") as doc_file:
+                st.markdown(doc_file.read())
+                
+        # Feature descriptions
+        st.markdown("### 🔰 Quick Feature Guide")
+        st.markdown("""
+        - **f1-f200**: Numerical features extracted from network traffic
+        - **protocol_type**: Network protocol (tcp, udp, icmp)
+        - **service**: Network service type
+        - **flag**: Connection status flag
+        - **label**: Classification (attack/normal)
+        
+        The dataset is pre-processed and ready for machine learning applications.
+        Features are normalized and balanced for optimal training results.
+        """)
+        
+        # Citation info
+        st.markdown("### 📚 Citation & Usage")
+        st.markdown("""
+        If you use this dataset in your research or project, please cite:
+        ```
+        Network Attack Detection Dataset (2025)
+        Cyber Threat Detection System
+        ```
+        """)
         
         if st.session_state.test_results is None:
             st.markdown("""
