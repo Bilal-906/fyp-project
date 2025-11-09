@@ -29,6 +29,9 @@ st.markdown("""
                   padding: 2rem 0; border-radius: 20px; color: white; margin-bottom: 2rem;
                   box-shadow: 0 10px 30px rgba(0,0,0,0.3);}
     .title-box h1 {font-size: 3rem; font-weight: 900; text-shadow: 3px 3px 6px rgba(0,0,0,0.4);}
+    .dataset-box {background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                  color: white; padding: 2rem; border-radius: 15px; margin: 2rem 0;
+                  box-shadow: 0 8px 25px rgba(0,0,0,0.3);}
     .stButton>button {background: linear-gradient(90deg, #11998e, #38ef7d); 
                         color: white; border-radius: 10px; padding: 1rem 2rem; 
                         font-size: 18px; font-weight: bold; width: 100%;
@@ -242,6 +245,35 @@ if not st.session_state.authenticated:
         <div class="info-box">
             <h2>🔒 Secure Login Required</h2>
             <p>Please login to access the Threat Detection System</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Dataset Download Section
+    st.markdown("""
+        <div class="dataset-box">
+            <h2>📊 Download Training Dataset</h2>
+            <p>Get the network attack dataset used to train this model. Contains features extracted from network traffic for attack detection.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("📥 Download Network Attack Dataset"):
+        with open("network_attack_dataset.csv", "rb") as file:
+            st.download_button(
+                label="📥 Confirm Download",
+                data=file,
+                file_name="network_attack_dataset.csv",
+                mime="text/csv"
+            )
+            
+    st.markdown("""
+        <div style='margin-top: 1rem;'>
+            <h3>📋 Dataset Details</h3>
+            <ul>
+                <li>200 numeric features extracted from network traffic</li>
+                <li>Protocol type, service, and connection flags</li>
+                <li>Binary classification: Attack vs Normal</li>
+                <li>Balanced dataset with training/test split</li>
+            </ul>
         </div>
     """, unsafe_allow_html=True)
     
