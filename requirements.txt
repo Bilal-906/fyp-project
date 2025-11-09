@@ -1,13 +1,19 @@
-# Requirements for Streamlit app
-streamlit>=1.24
-pandas>=1.5
-numpy>=1.23
-scikit-learn>=1.1
-tensorflow>=2.11
-h5py>=3.7
-joblib>=1.2
-Pillow>=9.3
-matplotlib>=3.6
-seaborn>=0.12
-scipy>=1.10
-# Add any other packages your app imports
+# Requirements for Streamlit app deployment
+streamlit>=1.24.0
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.1.0
+tensorflow>=2.11.0
+h5py>=3.7.0
+joblib>=1.2.0
+Pillow>=9.3.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+scipy>=1.10.0
+imbalanced-learn>=0.11.0  # for SMOTE and other balancing
+plotly>=5.13.0  # for interactive plots
+
+# Notes:
+# - TensorFlow will use CPU by default. For GPU support, install tensorflow-gpu
+# - Some packages might need compilation. If deployment fails, try:
+#   pip install --only-binary :all: -r requirements.txt
