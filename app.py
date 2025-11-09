@@ -271,7 +271,33 @@ else:
     if mode == "📚 Train Model":
         st.sidebar.markdown("---")
         st.sidebar.header("📁 Upload Dataset")
-        uploaded_file = st.sidebar.file_uploader("Upload Training CSV", type="csv", help="Upload your labeled training dataset")
+        
+        # Dataset Selection Method
+        dataset_method = st.sidebar.radio(
+            "Choose Data Source",
+            ["📤 Upload Your Data", "📱 Use Sample Data"],
+            help="Select how you want to provide the training data"
+        )
+        
+        if dataset_method == "📤 Upload Your Data":
+            st.sidebar.markdown("""
+                ### 📱 Mobile Upload Tips
+                1. Tap the 'Browse files' button
+                2. Select 'Files' or 'Documents'
+                3. Navigate to your CSV file
+                4. Select and confirm
+                
+                Supported format: CSV files
+            """)
+            uploaded_file = st.sidebar.file_uploader(
+                "Upload Training CSV",
+                type="csv",
+                help="Upload your labeled training dataset. On mobile, make sure to allow file access.",
+                accept_multiple_files=False
+            )
+        else:
+            st.sidebar.success("✅ Using built-in sample dataset")
+            uploaded_file = "network_attack_dataset.csv"
         
         st.sidebar.markdown("---")
         st.sidebar.header("⚙️ Model Configuration")
@@ -310,7 +336,10 @@ else:
         if uploaded_file:
             try:
                 # Load data
-                df = pd.read_csv(uploaded_file)
+                if isinstance(uploaded_file, str):  # Using sample data
+                    df = pd.read_csv(uploaded_file)
+                else:  # User uploaded file
+                    df = pd.read_csv(uploaded_file)
                 
                 st.markdown(f"""
                 <div class="metric-box">
