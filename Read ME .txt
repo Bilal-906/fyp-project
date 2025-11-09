@@ -1,0 +1,32 @@
+is ma jo data set use hwa ha wo "UNSW_NB15_training-set.csv: 
+
+---
+
+How to run the Streamlit app
+
+1) Create a virtual environment (recommended) and activate it (PowerShell):
+
+	python -m venv .venv
+	.\.venv\Scripts\Activate.ps1
+
+2) Upgrade pip and install dependencies:
+
+	python -m pip install --upgrade pip
+	pip install -r requirements.txt
+
+3) Run the app with Streamlit:
+
+	streamlit run app.py
+
+Notes and troubleshooting
+- If you get TensorFlow/GPU errors, you probably installed a CPU-only wheel—install a GPU-enabled TensorFlow matching your CUDA/cuDNN stack, or use the CPU wheel if you don't have a GPU.
+- If ports are in use, add `--server.port 8501` (or another port) to the `streamlit run` command, e.g.:
+
+	streamlit run app.py --server.port 8502
+
+- If Streamlit can't find `app.py`, ensure you're running the command from the project root where `app.py` lives.
+- To deploy on Streamlit Community Cloud, create a `requirements.txt` (already added) and push this repo to GitHub; Streamlit Cloud will install dependencies automatically.
+
+If you'd like, I can also:
+- Add these instructions into a new `README.md` instead (more standard for GitHub).
+- Add a small `Procfile` or `Dockerfile` for specific hosting targets.

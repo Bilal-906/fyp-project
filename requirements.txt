@@ -1,0 +1,13 @@
+# Requirements for Streamlit app
+streamlit>=1.24
+pandas>=1.5
+numpy>=1.23
+scikit-learn>=1.1
+tensorflow>=2.11
+h5py>=3.7
+joblib>=1.2
+Pillow>=9.3
+matplotlib>=3.6
+seaborn>=0.12
+scipy>=1.10
+# Add any other packages your app imports

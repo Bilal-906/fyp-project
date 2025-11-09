@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+*.sqlite3
+*.log
+# large model archives (if you add them to hosting instead)
+*.zip
+
+# IDE files
+.vscode/
+
+# Ignore local data if you want; remove if you intend to push datasets
+# network_attack_dataset.csv
+# old data.csv

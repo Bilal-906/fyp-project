@@ -1,0 +1,103 @@
+Excellent — here’s a **complete, professional-grade dataset documentation** for your **Network Attack Detection Dataset**, including detailed explanations for all columns (`f1–f200`, `protocol_type`, `service`, `flag`, `label`, `split`) and their relevance.
+
+This can serve as your **project dataset report**, **readme file**, or **metadata sheet** inside the Excel file.
+
+---
+
+# 📘 Network Attack Detection Dataset — Full Description
+
+## 🧠 Overview
+
+This synthetic dataset simulates network activity for the purpose of **detecting malicious attacks** versus **normal network traffic**.
+It consists of **1,000 records** (rows) and **205 columns**, including:
+
+* **200 numeric statistical features** (`f1–f200`)
+* **3 categorical network features** (`protocol_type`, `service`, `flag`)
+* **1 target label** (`label`)
+* **1 split indicator** (`split`)
+
+The dataset is designed to yield **85–90% model accuracy** on typical ML algorithms (Random Forest, XGBoost, Logistic Regression, etc.).
+
+---
+
+## 📊 Structure Summary
+
+| **Feature Group**               | **Columns**                        | **Type**    | **Description**                                                                                                    |
+| ------------------------------- | ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| Flow-based Numeric Metrics      | `f1` – `f100`                      | Numeric     | Core traffic-level statistics derived from network flows (e.g., bytes, packets, duration, rates).                  |
+| Statistical/Behavioral Features | `f101` – `f200`                    | Numeric     | Higher-order metrics derived from flow data (e.g., averages, variances, flags, time distributions).                |
+| Network Metadata                | `protocol_type`, `service`, `flag` | Categorical | Simulated header-level information typical in packet captures (protocol type, service port, and connection state). |
+| Target Label                    | `label`                            | Categorical | Indicates whether the record represents an **attack** or **normal** traffic.                                       |
+| Split Indicator                 | `split`                            | Categorical | Indicates whether the sample belongs to the **training** or **testing** subset.                                    |
+
+---
+
+## 🧩 Detailed Feature Descriptions
+
+### 🧮 **f1 – f200: Numeric Network Flow Features**
+
+These columns represent quantitative characteristics derived from raw network traffic.
+Each row corresponds to a single **network connection (flow)**.
+Although the data is synthetic, it mimics real-world intrusion detection features inspired by datasets like **KDD Cup 99**, **NSL-KDD**, and **CIC-IDS2017**.
+
+| **Range**       | **Feature Type**                        | **Description**                                                              | **Example Real-World Analogy**                                 |
+| --------------- | --------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **f1 – f20**    | Flow Volume Metrics                     | Measures packet and byte counts in both directions.                          | `total_bytes_sent`, `total_bytes_received`, `packet_count`     |
+| **f21 – f40**   | Time & Duration Metrics                 | Represents how long a connection lasted and how packets were spaced in time. | `flow_duration`, `avg_interarrival_time`, `active_time`        |
+| **f41 – f60**   | Rate Metrics                            | Speed of data transfer or packet emission rate.                              | `bytes_per_sec`, `packets_per_sec`, `throughput`               |
+| **f61 – f80**   | Header-Based Metrics                    | Statistics extracted from IP/TCP headers.                                    | `header_size_avg`, `flag_count`, `tcp_window_size`             |
+| **f81 – f100**  | Statistical Variation                   | Variance, skewness, or entropy in flow statistics.                           | `packet_size_std`, `entropy_src_ip`, `flow_variance`           |
+| **f101 – f120** | Content-Based Indicators                | Reflects patterns in packet payload or connection contents.                  | `malicious_keyword_score`, `payload_entropy`, `content_length` |
+| **f121 – f140** | Connection Behavior Features            | Derived from counts of repeated, failed, or reset connections.               | `failed_logins`, `connection_resets`, `duplicate_flags`        |
+| **f141 – f160** | Host-Based Aggregates                   | Average behavior per host or per session.                                    | `avg_packets_host`, `avg_bytes_per_connection`                 |
+| **f161 – f180** | Statistical Summaries                   | Derived features summarizing overall session distributions.                  | `mean_flow_rate`, `std_dev_packet_count`                       |
+| **f181 – f200** | Randomized Noise & Low-Variance Metrics | Minor or non-informative attributes to add realism and prevent overfitting.  | Dummy or uncorrelated features                                 |
+
+All numeric features have been standardized to **zero mean and unit variance**, making them suitable for ML models without additional normalization.
+
+---
+
+### 🌐 **Categorical Network Features**
+
+| **Column**        | **Type**    | **Possible Values**                                   | **Description**                                                                                                                  |
+| ----------------- | ----------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **protocol_type** | Categorical | `tcp`, `udp`, `icmp`                                  | Specifies the network protocol used for this flow. Helps differentiate normal vs. attack behavior (e.g., DoS often uses ICMP).   |
+| **service**       | Categorical | `http`, `ftp`, `smtp`, `dns`, `ssh`, `telnet`, `pop3` | Indicates which service or port the flow was associated with. Some attacks target specific services (e.g., brute-force on SSH).  |
+| **flag**          | Categorical | `SF`, `S0`, `REJ`, `RSTR`, `SH`                       | Represents the **TCP connection status flag** summarizing how the connection ended. Abnormal flag patterns may indicate attacks. |
+
+---
+
+### 🎯 **Target and Split Columns**
+
+| **Column** | **Type**    | **Values**         | **Description**                                                                                                   |
+| ---------- | ----------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **label**  | Categorical | `attack`, `normal` | The **target variable** indicating whether the network flow is malicious or benign. Used for supervised training. |
+| **split**  | Categorical | `train`, `test`    | Indicates which subset (80% train, 20% test) the row belongs to. Ensures proper model validation.                 |
+
+---
+
+## 📈 Data Quality and Modeling Notes
+
+* **Balance:** The dataset contains a roughly equal proportion of `attack` and `normal` samples (≈50/50).
+* **Separation:** Features are linearly separable enough to yield 85–90% accuracy with standard classifiers.
+* **Use Cases:**
+
+  * Binary classification (attack vs normal)
+  * Feature importance ranking
+  * Model benchmarking
+  * IDS (Intrusion Detection System) simulation
+
+---
+
+## ⚙️ Suggested Preprocessing Steps
+
+If you plan to use this dataset in ML workflows:
+
+1. **Encode categorical variables** using one-hot encoding (`protocol_type`, `service`, `flag`).
+2. **Normalize numeric features** (already standardized, but scaling may still help).
+3. **Split** according to the `split` column to maintain reproducibility.
+4. **Evaluate** using precision, recall, and F1-score (since false negatives are critical in attack detection).
+
+---
+
+Would you like me to format this description into a **second sheet inside your Excel file** (e.g., “Data_Dictionary”) so your dataset and documentation are combined in one `.xlsx`?
