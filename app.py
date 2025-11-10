@@ -299,7 +299,7 @@ if not st.session_state.authenticated:
             st.markdown("<h3 style='text-align: center;'>Login</h3>", unsafe_allow_html=True)
             email = st.text_input("📧 Email", value="")
             password = st.text_input("🔑 Password", type="password", value="")
-            login = st.form_submit_button("🚀 Login", use_container_width=True)
+            login = st.form_submit_button("🚀 Login", width='stretch')
             
             if login:
                 if email == "bilal123@gmail.com" and password == "bilal123":
@@ -450,7 +450,7 @@ else:
                 
                 # Preview data
                 with st.expander("🔍 Preview Dataset (First 30 Rows)"):
-                    st.dataframe(df.head(30), use_container_width=True)
+                    st.dataframe(df.head(30), width='stretch')
                 
                 # Check for label column
                 if 'label' not in df.columns:
@@ -470,7 +470,7 @@ else:
                 with col1:
                     class_counts = df['label'].value_counts()
                     st.write("**Class Counts:**")
-                    st.dataframe(class_counts, use_container_width=True)
+                    st.dataframe(class_counts, width='stretch')
                     
                     # Check for class imbalance
                     imbalance_ratio = class_counts.max() / class_counts.min()
@@ -490,7 +490,7 @@ else:
                 
                 # Train button
                 st.markdown("---")
-                if st.button("🚀 START TRAINING", use_container_width=True):
+                if st.button("🚀 START TRAINING", width='stretch'):
                     with st.spinner("🔄 Training in progress... Please wait..."):
                         try:
                             # Step 1: Clean data
@@ -757,7 +757,7 @@ else:
                             
                             st.dataframe(
                                 results_df.style.highlight_max(axis=0, color='lightgreen'),
-                                use_container_width=True
+                                width='stretch'
                             )
                             
                             best_acc = results[best_model_name]['accuracy'] * 100
@@ -811,7 +811,7 @@ else:
                             st.markdown("---")
                             col1, col2, col3 = st.columns([1, 2, 1])
                             with col2:
-                                if st.button("💾 SAVE MODEL", use_container_width=True):
+                                if st.button("💾 SAVE MODEL", width='stretch'):
                                     try:
                                         joblib.dump(st.session_state.model_artifacts, 'trained_threat_model.pkl')
                                         st.success("✅ Model saved successfully as 'trained_threat_model.pkl'")
@@ -917,9 +917,9 @@ else:
                     """, unsafe_allow_html=True)
                     
                     with st.expander("🔍 Preview Test Data (First 20 Rows)"):
-                        st.dataframe(test_df.head(20), use_container_width=True)
+                        st.dataframe(test_df.head(20), width='stretch')
                     
-                    if st.button("🚀 RUN PREDICTION", use_container_width=True):
+                    if st.button("🚀 RUN PREDICTION", width='stretch'):
                         with st.spinner("🔄 Making predictions..."):
                             try:
                                 artifacts = st.session_state.model_artifacts
@@ -996,7 +996,7 @@ else:
                                     'Confidence (%)': (pred_proba.max(axis=1) * 100).round(2)
                                 })
                                 
-                                st.dataframe(results_df, use_container_width=True)
+                                st.dataframe(results_df, width='stretch')
                                 
                                 # If labels exist, calculate metrics
                                 if has_labels and y_true is not None:
@@ -1074,7 +1074,7 @@ else:
                                         st.write("### 📋 Detailed Classification Report")
                                         report = classification_report(y_true_encoded, predictions, output_dict=True, zero_division=0)
                                         report_df = pd.DataFrame(report).transpose().round(3)
-                                        st.dataframe(report_df, use_container_width=True)
+                                        st.dataframe(report_df, width='stretch')
                                 
                                 # Download predictions
                                 csv = results_df.to_csv(index=False)
@@ -1083,7 +1083,7 @@ else:
                                     data=csv,
                                     file_name="threat_predictions.csv",
                                     mime="text/csv",
-                                    use_container_width=True
+                                    width='stretch'
                                 )
                                 
                             except Exception as e:
@@ -1125,7 +1125,7 @@ else:
                 st.info("📦 File Size: N/A")
 
             if preview_df is not None:
-                st.dataframe(preview_df, use_container_width=True)
+                st.dataframe(preview_df, width='stretch')
             else:
                 st.info("Preview not available for this file.")
 
@@ -1165,7 +1165,7 @@ else:
                         data=csv_data,
                         file_name="network_attack_dataset.csv",
                         mime="text/csv",
-                        use_container_width=True
+                        width='stretch'
                     )
                 st.success("✅ Dataset is ready for download! Click the button above to start downloading.")
             except Exception as e:
@@ -1280,7 +1280,7 @@ else:
                 
                 st.dataframe(
                     results_df.style.highlight_max(axis=0, color='lightgreen'),
-                    use_container_width=True
+                    width='stretch'
                 )
                 
                 # Visualizations
@@ -1336,7 +1336,7 @@ else:
                 st.write("### 📋 Detailed Classification Report")
                 report = classification_report(results['y_test'], results['y_pred'], output_dict=True, zero_division=0)
                 report_df = pd.DataFrame(report).transpose().round(4)
-                st.dataframe(report_df, use_container_width=True)
+                st.dataframe(report_df, width='stretch')
                 
                 # Download buttons
                 st.markdown("---")
@@ -1350,7 +1350,7 @@ else:
                         data=csv_results,
                         file_name="model_comparison.csv",
                         mime="text/csv",
-                        use_container_width=True
+                        width='stretch'
                     )
                 
                 with col2:
@@ -1360,7 +1360,7 @@ else:
                         data=csv_report,
                         file_name="classification_report.csv",
                         mime="text/csv",
-                        use_container_width=True
+                        width='stretch'
                     )
                 
             except Exception as e:
@@ -1381,7 +1381,7 @@ else:
     - Use 10-15% test split
     """)
     
-    if st.sidebar.button("🚪 Logout", use_container_width=True):
+    if st.sidebar.button("🚪 Logout", width='stretch'):
         st.session_state.authenticated = False
         st.session_state.trained_model = None
         st.session_state.test_results = None

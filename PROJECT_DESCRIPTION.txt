@@ -1,0 +1,158 @@
+Project: Cyber Threat Detection System (Streamlit)
+
+Overview
+--------
+This project is a Streamlit-based interactive application named "Cyber Threat Detection System". It provides a GUI for training, testing, evaluating, and downloading models for network attack detection. The app uses ensemble machine learning techniques and an aggressive data-cleaning and feature-engineering pipeline to maximize classification performance on labeled network traffic datasets.
+
+Key Features
+------------
+- Streamlit web UI with sections for: Train Model, Test Model, View Results, and Dataset
+- Ultra data cleaning pipeline (ultra_clean_data) that removes empty columns/rows, handles infinite values, imputes missing data smartly, handles outliers, drops zero/low variance features, and removes highly correlated features.
+- Advanced feature engineering (create_advanced_features) that selects top numeric features (SelectKBest with mutual_info_classif), creates pairwise interactions, safe divisions, polynomial transformations, and row-wise statistical aggregations.
+- Multiple ensemble classifiers: Random Forest, Extra Trees, Gradient Boosting, AdaBoost, Bagging (with RandomForest inside). Also builds VotingClassifier and StackingClassifier using trained base models.
+- Class balancing options: SMOTETomek, SMOTEENN, SMOTE, BorderlineSMOTE (from imblearn) to handle imbalanced datasets.
+- Feature scaling pipeline: RobustScaler followed by StandardScaler.
+- Label encoding (LabelEncoder) and one-hot encoding for categorical features.
+- Training metrics: Accuracy, Precision, Recall, F1-Score (weighted averages). Best model is selected based on accuracy.
+- Model artifacts saved as a dictionary (model_artifacts) and optionally serialized to 'trained_threat_model.pkl' with joblib. Artifacts include the model, scalers, drop/ categorical columns, label encoder, and feature names.
+- Test mode that can reuse the dataset used in training or accept an uploaded CSV for predictions and evaluation.
+- Dataset page with memory-friendly preview and download button for the sample CSV (network_attack_dataset.csv).
+
+Important Files in This Workspace
+---------------------------------
+- app.py
+    - The main Streamlit application. Contains UI code and the full training/testing logic.
+    - Key functions: ultra_clean_data(df), create_advanced_features(X, y), read_csv_preview(path), count_csv_lines(path), compute_label_counts(path).
+    - Uses st.session_state to persist model artifacts and results across the session.
+- requirements.txt
+    - Python dependencies required by the project (Streamlit, scikit-learn, imbalanced-learn, pandas, numpy, matplotlib, joblib, etc.).
+- network_attack_dataset.csv
+    - Provided sample dataset used in the app's "Dataset" and sample training flows.
+- old data.csv
+    - Alternate sample dataset included in the workspace.
+- your_ann_model.h5
+    - A saved Keras model file (not used by the current ensemble training code but present in workspace).
+- Read ME .txt, README.md
+    - Additional project notes; may be older readme files.
+- Dataset discription/ (folder)
+    - dis.txt, dis 2.txt: textual descriptions/documentation of the dataset features.
+- trained_threat_model.pkl (created at runtime if you save a model)
+    - Contains model_artifacts dictionary (model, scalers, feature names, label encoder, drop/cat cols, training dataset path).
+
+High-level Program Flow (UI & Code)
+----------------------------------
+1. Authentication
+   - On first load, the app shows a simple login form. (Note: credentials are hardcoded in current code: email 'bilal123@gmail.com' and password 'bilal123'). Successful login sets st.session_state.authenticated = True and reruns the app.
+
+2. Sidebar Navigation
+   - Modes: Train Model, Test Model, View Results, Dataset.
+
+3. Train Model Mode
+   - Dataset source: upload a CSV or use one of the sample datasets (network_attack_dataset.csv or old data.csv).
+   - The app displays dataset shape, missing values, and class distribution plots.
+   - If 'START TRAINING' is pressed, the following pipeline runs:
+     a. ultra_clean_data(df): aggressive cleaning and transformations
+     b. Prepare features: drop common ID/timestamp columns and separate X / y ('label' required)
+     c. One-hot encode categorical columns (pd.get_dummies)
+     d. create_advanced_features(X, y): create interaction and polynomial features
+     e. Encode labels via LabelEncoder if they are strings
+     f. Split dataset into train/test using train_test_split with stratify
+     g. Scale features using RobustScaler then StandardScaler
+     h. Balance training set using selected imblearn sampler (SMOTETomek, SMOTEENN, SMOTE, BorderlineSMOTE)
+     i. Train base ensemble models (configurable n_estimators)
+     j. Build VotingClassifier and StackingClassifier from the trained base models
+     k. Evaluate all models on the holdout test set and pick the best model by accuracy
+     l. Store artifacts in st.session_state.model_artifacts and the selected model in st.session_state.trained_model
+     m. Optionally save model artifacts to disk as 'trained_threat_model.pkl' using joblib
+
+4. Test Model Mode
+   - If a model is loaded in session_state, user can reuse the training dataset (if path known) or upload a test CSV.
+   - The app aligns the test dataset to the saved feature names (filling missing columns with zeros), applies the saved scalers in the same order, runs predict() and predict_proba() on the stored model, and decodes labels if a LabelEncoder exists.
+   - If labels exist in the test dataset, it computes evaluation metrics and warns about unknown classes.
+
+5. View Results
+   - Displays best model metrics and a table comparing all trained models saved in st.session_state.test_results.
+
+6. Dataset
+   - Shows a preview and stats for the included sample dataset and provides a download button.
+
+How to Run Locally
+------------------
+1. Create a Python environment (recommended Python 3.10+).
+2. Install dependencies from requirements.txt. Example (PowerShell):
+   python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt
+
+3. Run the app with Streamlit (PowerShell):
+   streamlit run "e:\\Bilal project files\\Project Interface Advance\\app.py"
+
+4. Open the Streamlit URL printed in the terminal (usually http://localhost:8501) in your browser.
+
+Notes on Dependencies
+---------------------
+- Core: streamlit, pandas, numpy, scikit-learn, matplotlib, seaborn (optional), joblib
+- Imbalanced learning: imbalanced-learn (imblearn)
+- For very large datasets, the app uses chunked reading and light previews to avoid memory issues.
+- See requirements.txt for exact pinned versions. If the file is missing or incomplete, run pip install streamlit scikit-learn pandas numpy matplotlib imbalanced-learn joblib
+
+Model Artifacts and Reproducibility
+-----------------------------------
+- model_artifacts (dict) saved by the app contains:
+  - 'model': trained classifier (could be VotingClassifier / StackingClassifier / single estimator)
+  - 'scaler1' and 'scaler2': RobustScaler and StandardScaler instances
+  - 'drop_cols': columns to drop on new inputs (timestamp, flow_id, etc.)
+  - 'cat_cols': categorical columns expected (used for get_dummies during training)
+  - 'label_encoder': LabelEncoder instance or None
+  - 'feature_names': ordered list of features expected by the model
+  - 'training_dataset_path' (optional): path to the dataset used for training
+
+- To reproduce predictions exactly, load the saved artifacts and use the same preprocess, encoding, and scaling steps in the same order.
+
+Security & Privacy Notes
+------------------------
+- The app currently contains hardcoded credentials. Replace the authentication mechanism (e.g., use an environment-based secret or proper auth) before deploying.
+- Be cautious with uploaded datasets—store them in a secure folder and avoid exposing PII.
+
+Assumptions & Limitations
+-------------------------
+- The dataset must contain a 'label' column for supervised training and evaluation.
+- The feature engineering function heavily relies on numeric features; ensure numeric columns are correctly typed.
+- Some samplers or classifiers may change behavior across package versions. If using a different environment, test on a small run first.
+- The pipeline expects the trained model's feature list to be complete and will add missing features as zeros at test time. If the test data contains extra features, they are ignored unless added to the saved feature list.
+
+Troubleshooting Tips
+--------------------
+- "Missing 'label' Column" error: ensure the CSV has a 'label' column (case-sensitive).
+- Large dataset memory issue: use a smaller sample for training or increase available memory. The app warns for files >~20MB and provides an opt-in checkbox for loading.
+- Unknown labels at test time: if the test set contains labels unseen during training, metrics will be computed only for known classes; map or re-encode labels consistently.
+- If joblib fails to load saved model: verify matching scikit-learn and imblearn versions.
+- If scaling or predict_proba fails: ensure saved artifact keys ('scaler1','scaler2','feature_names') exist and match the app's expected structure.
+
+Useful Commands (PowerShell)
+---------------------------
+# Create and activate venv
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+# Install dependencies
+pip install -r requirements.txt
+# Run Streamlit app
+streamlit run "e:\\Bilal project files\\Project Interface Advance\\app.py"
+
+Where to Edit
+-------------
+- `app.py`: Modify UI, adjust training hyperparameters, or change preprocessing logic.
+  - ultra_clean_data(df): change cleaning thresholds, imputation strategy, or outlier clipping rules.
+  - create_advanced_features(X, y): adjust the number and types of engineered features.
+  - Sidebar settings: default n_estimators, balancing method, feature-engineering toggle.
+
+Next Steps & Suggestions
+------------------------
+- Replace hardcoded login with a secure authentication method.
+- Add unit tests for the preprocessing functions (ultra_clean_data and create_advanced_features).
+- Add a small sample test script that loads the saved 'trained_threat_model.pkl' and runs predictions on a sample CSV to verify artifact compatibility.
+- Consider exporting model as a lightweight ONNX if you plan production deployment with language-agnostic serving.
+
+Contact / Author
+----------------
+Created/edited by: (Your workspace)
+Project file: app.py
+
+END OF DOCUMENT
