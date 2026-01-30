@@ -645,7 +645,7 @@ else:
                             voting_model = VotingClassifier(
                                 estimators=trained_models,
                                 voting='soft',
-                                weights=[2, 2, 1, 1],
+                                weights=[2, 2, 1.5, 1, 1],
                                 n_jobs=-1
                             )
                             voting_model.fit(X_train_bal, y_train_bal)
