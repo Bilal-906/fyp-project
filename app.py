@@ -622,7 +622,7 @@ else:
                             
                             results = {}
                             trained_models = []
-                            total_models = len(models)
+                            total_models = len(models) + 2  # +2 for voting and stacking
                             
                             for idx, (name, model) in enumerate(models.items()):
                                 status_text.text(f"⚙️ Training {name}... ({idx+1}/{total_models})")
