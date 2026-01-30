@@ -299,7 +299,8 @@ if not st.session_state.authenticated:
             st.markdown("<h3 style='text-align: center;'>Login</h3>", unsafe_allow_html=True)
             email = st.text_input("📧 Email", value="")
             password = st.text_input("🔑 Password", type="password", value="")
-            login = st.form_submit_button("🚀 Login", width='stretch')
+            # removed invalid width='stretch'
+            login = st.form_submit_button("🚀 Login")
             
             if login:
                 if email == "bilal123@gmail.com" and password == "bilal123":
@@ -450,7 +451,8 @@ else:
                 
                 # Preview data
                 with st.expander("🔍 Preview Dataset (First 30 Rows)"):
-                    st.dataframe(df.head(30), width='stretch')
+                    # Removed width='stretch' (Streamlit expects int or None)
+                    st.dataframe(df.head(30))
                 
                 # Check for label column
                 if 'label' not in df.columns:
@@ -470,7 +472,8 @@ else:
                 with col1:
                     class_counts = df['label'].value_counts()
                     st.write("**Class Counts:**")
-                    st.dataframe(class_counts, width='stretch')
+                    # Removed width='stretch'
+                    st.dataframe(class_counts)
                     
                     # Check for class imbalance
                     imbalance_ratio = class_counts.max() / class_counts.min()
@@ -490,7 +493,7 @@ else:
                 
                 # Train button
                 st.markdown("---")
-                if st.button("🚀 START TRAINING", width='stretch'):
+                if st.button("🚀 START TRAINING"):
                     with st.spinner("🔄 Training in progress... Please wait..."):
                         try:
                             # Step 1: Clean data
@@ -711,6 +714,7 @@ else:
                                 best_model = dict(trained_models)[best_model_name]
                                 best_pred = best_model.predict(X_test_scaled)
                             
+
                             # Store results
                             st.session_state.trained_model = best_model
                             st.session_state.test_results = {
@@ -755,10 +759,8 @@ else:
                             
                             results_df = results_df.sort_values('Accuracy (%)', ascending=False)
                             
-                            st.dataframe(
-                                results_df.style.highlight_max(axis=0, color='lightgreen'),
-                                width='stretch'
-                            )
+                            # removed width='stretch' (must be int or omitted)
+                            st.dataframe(results_df.style.highlight_max(axis=0, color='lightgreen'))
                             
                             best_acc = results[best_model_name]['accuracy'] * 100
                             best_prec = results[best_model_name]['precision'] * 100
@@ -794,7 +796,7 @@ else:
                                 <div class="warning-box">
                                     <h2>⚠️ Current Accuracy: {best_acc:.2f}%</h2>
                                     <h3>Best Model: {best_model_name}</h3>
-                                    <p style="font-size: 1.1rem; margin-top: 1rem;">Below 90% target. Consider these improvements:</p>
+                                    <p style="font-size: 1.1rem; margin-top: 1rem;">Below 80% target. Consider these improvements:</p>
                                     <ul style="text-align: left; display: inline-block;">
                                         <li>✅ Ensure dataset has clear, distinct patterns between classes</li>
                                         <li>✅ Check for data quality (consistent labels, no noise)</li>
@@ -811,7 +813,8 @@ else:
                             st.markdown("---")
                             col1, col2, col3 = st.columns([1, 2, 1])
                             with col2:
-                                if st.button("💾 SAVE MODEL", width='stretch'):
+                                # removed width='stretch'
+                                if st.button("💾 SAVE MODEL"):
                                     try:
                                         joblib.dump(st.session_state.model_artifacts, 'trained_threat_model.pkl')
                                         st.success("✅ Model saved successfully as 'trained_threat_model.pkl'")
@@ -917,7 +920,8 @@ else:
                     """, unsafe_allow_html=True)
                     
                     with st.expander("🔍 Preview Test Data (First 20 Rows)"):
-                        st.dataframe(test_df.head(20), width='stretch')
+                        # removed width='stretch'
+                        st.dataframe(test_df.head(20))
                     
                     if st.button("🚀 RUN PREDICTION", width='stretch'):
                         with st.spinner("🔄 Making predictions..."):
@@ -996,7 +1000,7 @@ else:
                                     'Confidence (%)': (pred_proba.max(axis=1) * 100).round(2)
                                 })
                                 
-                                st.dataframe(results_df, width='stretch')
+                                st.dataframe(results_df)
                                 
                                 # If labels exist, calculate metrics
                                 if has_labels and y_true is not None:
@@ -1074,16 +1078,17 @@ else:
                                         st.write("### 📋 Detailed Classification Report")
                                         report = classification_report(y_true_encoded, predictions, output_dict=True, zero_division=0)
                                         report_df = pd.DataFrame(report).transpose().round(3)
-                                        st.dataframe(report_df, width='stretch')
+                                        # removed width='stretch'
+                                        st.dataframe(report_df)
                                 
                                 # Download predictions
                                 csv = results_df.to_csv(index=False)
+                                # removed width='stretch'
                                 st.download_button(
                                     label="📥 Download Predictions CSV",
                                     data=csv,
                                     file_name="threat_predictions.csv",
-                                    mime="text/csv",
-                                    width='stretch'
+                                    mime="text/csv"
                                 )
                                 
                             except Exception as e:
@@ -1097,6 +1102,146 @@ else:
     
     elif mode == "📊 View Results":
         st.write("## 📊 TRAINING RESULTS DASHBOARD")
+         
+        if st.session_state.test_results is None:
+            st.markdown("""
+            <div class="info-box">
+                <h3>⚠️ No Results Available</h3>
+                <p>Please train a model first to view results.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            try:
+                results = st.session_state.test_results
+                best_model_name = results.get('best_model_name', 'STACKING ENSEMBLE')
+                
+                # Main metrics
+                best_acc = results['results'][best_model_name]['accuracy'] * 100
+                best_prec = results['results'][best_model_name]['precision'] * 100
+                best_rec = results['results'][best_model_name]['recall'] * 100
+                best_f1 = results['results'][best_model_name]['f1_score'] * 100
+                
+                st.markdown(f"""
+                <div class="success-box">
+                    <h1>🏆 BEST MODEL: {best_model_name}</h1>
+                    <h1 style="font-size: 6rem; margin: 2rem 0;">{best_acc:.2f}%</h1>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3rem; margin-top: 3rem;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
+                            <h3 style="margin: 0;">Precision</h3>
+                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_prec:.2f}%</h1>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
+                            <h3 style="margin: 0;">Recall</h3>
+                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_rec:.2f}%</h1>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
+                            <h3 style="margin: 0;">F1-Score</h3>
+                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_f1:.2f}%</h1>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # All models comparison
+                st.write("### 📊 All Models Performance Comparison")
+                results_df = pd.DataFrame({
+                    'Model': list(results['results'].keys()),
+                    'Accuracy (%)': [r['accuracy'] * 100 for r in results['results'].values()],
+                    'Precision (%)': [r['precision'] * 100 for r in results['results'].values()],
+                    'Recall (%)': [r['recall'] * 100 for r in results['results'].values()],
+                    'F1-Score (%)': [r['f1_score'] * 100 for r in results['results'].values()]
+                }).round(2)
+                
+                results_df = results_df.sort_values('Accuracy (%)', ascending=False)
+                
+                # removed width='stretch' (must be int or omitted)
+                st.dataframe(results_df.style.highlight_max(axis=0, color='lightgreen'))
+                
+                # Visualizations
+                st.write("### 📈 Performance Visualizations")
+                
+                fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+                
+                # Accuracy comparison
+                axes[0, 0].barh(results_df['Model'], results_df['Accuracy (%)'], color='#11998e', edgecolor='black')
+                axes[0, 0].set_xlabel('Accuracy (%)', fontweight='bold')
+                axes[0, 0].set_title('Model Accuracy Comparison', fontweight='bold', fontsize=14)
+                axes[0, 0].set_xlim(0, 100)
+                axes[0, 0].grid(axis='x', alpha=0.3)
+                
+                # Precision comparison
+                axes[0, 1].barh(results_df['Model'], results_df['Precision (%)'], color='#667eea', edgecolor='black')
+                axes[0, 1].set_xlabel('Precision (%)', fontweight='bold')
+                axes[0, 1].set_title('Model Precision Comparison', fontweight='bold', fontsize=14)
+                axes[0, 1].set_xlim(0, 100)
+                axes[0, 1].grid(axis='x', alpha=0.3)
+                
+                # Recall comparison
+                axes[1, 0].barh(results_df['Model'], results_df['Recall (%)'], color='#38ef7d', edgecolor='black')
+                axes[1, 0].set_xlabel('Recall (%)', fontweight='bold')
+                axes[1, 0].set_title('Model Recall Comparison', fontweight='bold', fontsize=14)
+                axes[1, 0].set_xlim(0, 100)
+                axes[1, 0].grid(axis='x', alpha=0.3)
+                
+                # F1-Score comparison
+                axes[1, 1].barh(results_df['Model'], results_df['F1-Score (%)'], color='#764ba2', edgecolor='black')
+                axes[1, 1].set_xlabel('F1-Score (%)', fontweight='bold')
+                axes[1, 1].set_title('Model F1-Score Comparison', fontweight='bold', fontsize=14)
+                axes[1, 1].set_xlim(0, 100)
+                axes[1, 1].grid(axis='x', alpha=0.3)
+                
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Confusion Matrix
+                st.write("### 🎯 Confusion Matrix")
+                cm = confusion_matrix(results['y_test'], results['y_pred'])
+                
+                fig, ax = plt.subplots(figsize=(10, 8))
+                sns.heatmap(cm, annot=True, fmt='d', cmap='RdYlGn', ax=ax, 
+                           cbar_kws={'label': 'Count'}, linewidths=1, linecolor='black')
+                ax.set_title(f'Confusion Matrix - {best_model_name}', fontsize=16, fontweight='bold')
+                ax.set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
+                ax.set_ylabel('Actual Label', fontsize=12, fontweight='bold')
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Classification Report
+                st.write("### 📋 Detailed Classification Report")
+                report = classification_report(results['y_test'], results['y_pred'], output_dict=True, zero_division=0)
+                report_df = pd.DataFrame(report).transpose().round(4)
+                # removed width='stretch'
+                st.dataframe(report_df)
+                
+                # Download buttons
+                st.markdown("---")
+                st.write("### 💾 Download Results")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    csv_results = results_df.to_csv(index=False)
+                    # removed width='stretch'
+                    st.download_button(
+                        label="📥 Download Model Comparison",
+                        data=csv_results,
+                        file_name="model_comparison.csv",
+                        mime="text/csv"
+                    )
+                
+                with col2:
+                    csv_report = report_df.to_csv()
+                    st.download_button(
+                        label="📥 Download Classification Report",
+                        data=csv_report,
+                        file_name="classification_report.csv",
+                        mime="text/csv"
+                    )
+                
+            except Exception as e:
+                st.error(f"❌ Error displaying results: {str(e)}")
+                import traceback
+                with st.expander("🔍 View Error Details"):
+                    st.code(traceback.format_exc())
         
     elif mode == "📥 Dataset":
         st.markdown("""
@@ -1125,7 +1270,8 @@ else:
                 st.info("📦 File Size: N/A")
 
             if preview_df is not None:
-                st.dataframe(preview_df, width='stretch')
+                # removed width='stretch'
+                st.dataframe(preview_df)
             else:
                 st.info("Preview not available for this file.")
 
@@ -1164,8 +1310,7 @@ else:
                         label="📥 Download Complete Dataset (CSV)",
                         data=csv_data,
                         file_name="network_attack_dataset.csv",
-                        mime="text/csv",
-                        width='stretch'
+                        mime="text/csv"
                     )
                 st.success("✅ Dataset is ready for download! Click the button above to start downloading.")
             except Exception as e:
@@ -1226,173 +1371,3 @@ else:
         Cyber Threat Detection System
         ```
         """)
-        
-        if st.session_state.test_results is None:
-            st.markdown("""
-            <div class="info-box">
-                <h3>⚠️ No Results Available</h3>
-                <p>Please train a model first to view results.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            try:
-                results = st.session_state.test_results
-                best_model_name = results.get('best_model_name', 'STACKING ENSEMBLE')
-                
-                # Main metrics
-                best_acc = results['results'][best_model_name]['accuracy'] * 100
-                best_prec = results['results'][best_model_name]['precision'] * 100
-                best_rec = results['results'][best_model_name]['recall'] * 100
-                best_f1 = results['results'][best_model_name]['f1_score'] * 100
-                
-                st.markdown(f"""
-                <div class="success-box">
-                    <h1>🏆 BEST MODEL: {best_model_name}</h1>
-                    <h1 style="font-size: 6rem; margin: 2rem 0;">{best_acc:.2f}%</h1>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3rem; margin-top: 3rem;">
-                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
-                            <h3 style="margin: 0;">Precision</h3>
-                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_prec:.2f}%</h1>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
-                            <h3 style="margin: 0;">Recall</h3>
-                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_rec:.2f}%</h1>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 15px;">
-                            <h3 style="margin: 0;">F1-Score</h3>
-                            <h1 style="font-size: 3rem; margin: 0.5rem 0;">{best_f1:.2f}%</h1>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # All models comparison
-                st.write("### 📊 All Models Performance Comparison")
-                results_df = pd.DataFrame({
-                    'Model': list(results['results'].keys()),
-                    'Accuracy (%)': [r['accuracy'] * 100 for r in results['results'].values()],
-                    'Precision (%)': [r['precision'] * 100 for r in results['results'].values()],
-                    'Recall (%)': [r['recall'] * 100 for r in results['results'].values()],
-                    'F1-Score (%)': [r['f1_score'] * 100 for r in results['results'].values()]
-                }).round(2)
-                
-                results_df = results_df.sort_values('Accuracy (%)', ascending=False)
-                
-                st.dataframe(
-                    results_df.style.highlight_max(axis=0, color='lightgreen'),
-                    width='stretch'
-                )
-                
-                # Visualizations
-                st.write("### 📈 Performance Visualizations")
-                
-                fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-                
-                # Accuracy comparison
-                axes[0, 0].barh(results_df['Model'], results_df['Accuracy (%)'], color='#11998e', edgecolor='black')
-                axes[0, 0].set_xlabel('Accuracy (%)', fontweight='bold')
-                axes[0, 0].set_title('Model Accuracy Comparison', fontweight='bold', fontsize=14)
-                axes[0, 0].set_xlim(0, 100)
-                axes[0, 0].grid(axis='x', alpha=0.3)
-                
-                # Precision comparison
-                axes[0, 1].barh(results_df['Model'], results_df['Precision (%)'], color='#667eea', edgecolor='black')
-                axes[0, 1].set_xlabel('Precision (%)', fontweight='bold')
-                axes[0, 1].set_title('Model Precision Comparison', fontweight='bold', fontsize=14)
-                axes[0, 1].set_xlim(0, 100)
-                axes[0, 1].grid(axis='x', alpha=0.3)
-                
-                # Recall comparison
-                axes[1, 0].barh(results_df['Model'], results_df['Recall (%)'], color='#38ef7d', edgecolor='black')
-                axes[1, 0].set_xlabel('Recall (%)', fontweight='bold')
-                axes[1, 0].set_title('Model Recall Comparison', fontweight='bold', fontsize=14)
-                axes[1, 0].set_xlim(0, 100)
-                axes[1, 0].grid(axis='x', alpha=0.3)
-                
-                # F1-Score comparison
-                axes[1, 1].barh(results_df['Model'], results_df['F1-Score (%)'], color='#764ba2', edgecolor='black')
-                axes[1, 1].set_xlabel('F1-Score (%)', fontweight='bold')
-                axes[1, 1].set_title('Model F1-Score Comparison', fontweight='bold', fontsize=14)
-                axes[1, 1].set_xlim(0, 100)
-                axes[1, 1].grid(axis='x', alpha=0.3)
-                
-                plt.tight_layout()
-                st.pyplot(fig)
-                
-                # Confusion Matrix
-                st.write("### 🎯 Confusion Matrix")
-                cm = confusion_matrix(results['y_test'], results['y_pred'])
-                
-                fig, ax = plt.subplots(figsize=(10, 8))
-                sns.heatmap(cm, annot=True, fmt='d', cmap='RdYlGn', ax=ax, 
-                           cbar_kws={'label': 'Count'}, linewidths=1, linecolor='black')
-                ax.set_title(f'Confusion Matrix - {best_model_name}', fontsize=16, fontweight='bold')
-                ax.set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
-                ax.set_ylabel('Actual Label', fontsize=12, fontweight='bold')
-                plt.tight_layout()
-                st.pyplot(fig)
-                
-                # Classification Report
-                st.write("### 📋 Detailed Classification Report")
-                report = classification_report(results['y_test'], results['y_pred'], output_dict=True, zero_division=0)
-                report_df = pd.DataFrame(report).transpose().round(4)
-                st.dataframe(report_df, width='stretch')
-                
-                # Download buttons
-                st.markdown("---")
-                st.write("### 💾 Download Results")
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    csv_results = results_df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download Model Comparison",
-                        data=csv_results,
-                        file_name="model_comparison.csv",
-                        mime="text/csv",
-                        width='stretch'
-                    )
-                
-                with col2:
-                    csv_report = report_df.to_csv()
-                    st.download_button(
-                        label="📥 Download Classification Report",
-                        data=csv_report,
-                        file_name="classification_report.csv",
-                        mime="text/csv",
-                        width='stretch'
-                    )
-                
-            except Exception as e:
-                st.error(f"❌ Error displaying results: {str(e)}")
-                import traceback
-                with st.expander("🔍 View Error Details"):
-                    st.code(traceback.format_exc())
-    
-    # Sidebar footer
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📌 Quick Info")
-    st.sidebar.info("""
-    **Tips for 90%+ Accuracy:**
-    - Use clean, labeled data
-    - Enable feature engineering
-    - Use 300-1000 estimators (lower on constrained hosts)
-    - Try SMOTETomek balancing
-    - Use 10-15% test split
-    """)
-    
-    if st.sidebar.button("🚪 Logout", width='stretch'):
-        st.session_state.authenticated = False
-        st.session_state.trained_model = None
-        st.session_state.test_results = None
-        st.session_state.model_artifacts = None
-        st.rerun()
-
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; padding: 2rem;">
-    <p>🛡️ <strong>Cyber Threat Detection System v2.0</strong></p>
-    <p>Built with Streamlit | Powered by Ensemble Machine Learning</p>
-</div>
-""", unsafe_allow_html=True)

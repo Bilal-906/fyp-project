@@ -1,158 +1,464 @@
-Project: Cyber Threat Detection System (Streamlit)
+NATIONAL COLLEGE OF BUSINESS ADMINISTRATION & ECONOMICS
+Sub-Campus, Multan
 
-Overview
---------
-This project is a Streamlit-based interactive application named "Cyber Threat Detection System". It provides a GUI for training, testing, evaluating, and downloading models for network attack detection. The app uses ensemble machine learning techniques and an aggressive data-cleaning and feature-engineering pipeline to maximize classification performance on labeled network traffic datasets.
 
-Key Features
-------------
-- Streamlit web UI with sections for: Train Model, Test Model, View Results, and Dataset
-- Ultra data cleaning pipeline (ultra_clean_data) that removes empty columns/rows, handles infinite values, imputes missing data smartly, handles outliers, drops zero/low variance features, and removes highly correlated features.
-- Advanced feature engineering (create_advanced_features) that selects top numeric features (SelectKBest with mutual_info_classif), creates pairwise interactions, safe divisions, polynomial transformations, and row-wise statistical aggregations.
-- Multiple ensemble classifiers: Random Forest, Extra Trees, Gradient Boosting, AdaBoost, Bagging (with RandomForest inside). Also builds VotingClassifier and StackingClassifier using trained base models.
-- Class balancing options: SMOTETomek, SMOTEENN, SMOTE, BorderlineSMOTE (from imblearn) to handle imbalanced datasets.
-- Feature scaling pipeline: RobustScaler followed by StandardScaler.
-- Label encoding (LabelEncoder) and one-hot encoding for categorical features.
-- Training metrics: Accuracy, Precision, Recall, F1-Score (weighted averages). Best model is selected based on accuracy.
-- Model artifacts saved as a dictionary (model_artifacts) and optionally serialized to 'trained_threat_model.pkl' with joblib. Artifacts include the model, scalers, drop/ categorical columns, label encoder, and feature names.
-- Test mode that can reuse the dataset used in training or accept an uploaded CSV for predictions and evaluation.
-- Dataset page with memory-friendly preview and download button for the sample CSV (network_attack_dataset.csv).
 
-Important Files in This Workspace
----------------------------------
-- app.py
-    - The main Streamlit application. Contains UI code and the full training/testing logic.
-    - Key functions: ultra_clean_data(df), create_advanced_features(X, y), read_csv_preview(path), count_csv_lines(path), compute_label_counts(path).
-    - Uses st.session_state to persist model artifacts and results across the session.
-- requirements.txt
-    - Python dependencies required by the project (Streamlit, scikit-learn, imbalanced-learn, pandas, numpy, matplotlib, joblib, etc.).
-- network_attack_dataset.csv
-    - Provided sample dataset used in the app's "Dataset" and sample training flows.
-- old data.csv
-    - Alternate sample dataset included in the workspace.
-- your_ann_model.h5
-    - A saved Keras model file (not used by the current ensemble training code but present in workspace).
-- Read ME .txt, README.md
-    - Additional project notes; may be older readme files.
-- Dataset discription/ (folder)
-    - dis.txt, dis 2.txt: textual descriptions/documentation of the dataset features.
-- trained_threat_model.pkl (created at runtime if you save a model)
-    - Contains model_artifacts dictionary (model, scalers, feature names, label encoder, drop/cat cols, training dataset path).
 
-High-level Program Flow (UI & Code)
-----------------------------------
-1. Authentication
-   - On first load, the app shows a simple login form. (Note: credentials are hardcoded in current code: email 'bilal123@gmail.com' and password 'bilal123'). Successful login sets st.session_state.authenticated = True and reruns the app.
 
-2. Sidebar Navigation
-   - Modes: Train Model, Test Model, View Results, Dataset.
 
-3. Train Model Mode
-   - Dataset source: upload a CSV or use one of the sample datasets (network_attack_dataset.csv or old data.csv).
-   - The app displays dataset shape, missing values, and class distribution plots.
-   - If 'START TRAINING' is pressed, the following pipeline runs:
-     a. ultra_clean_data(df): aggressive cleaning and transformations
-     b. Prepare features: drop common ID/timestamp columns and separate X / y ('label' required)
-     c. One-hot encode categorical columns (pd.get_dummies)
-     d. create_advanced_features(X, y): create interaction and polynomial features
-     e. Encode labels via LabelEncoder if they are strings
-     f. Split dataset into train/test using train_test_split with stratify
-     g. Scale features using RobustScaler then StandardScaler
-     h. Balance training set using selected imblearn sampler (SMOTETomek, SMOTEENN, SMOTE, BorderlineSMOTE)
-     i. Train base ensemble models (configurable n_estimators)
-     j. Build VotingClassifier and StackingClassifier from the trained base models
-     k. Evaluate all models on the holdout test set and pick the best model by accuracy
-     l. Store artifacts in st.session_state.model_artifacts and the selected model in st.session_state.trained_model
-     m. Optionally save model artifacts to disk as 'trained_threat_model.pkl' using joblib
 
-4. Test Model Mode
-   - If a model is loaded in session_state, user can reuse the training dataset (if path known) or upload a test CSV.
-   - The app aligns the test dataset to the saved feature names (filling missing columns with zeros), applies the saved scalers in the same order, runs predict() and predict_proba() on the stored model, and decodes labels if a LabelEncoder exists.
-   - If labels exist in the test dataset, it computes evaluation metrics and warns about unknown classes.
 
-5. View Results
-   - Displays best model metrics and a table comparing all trained models saved in st.session_state.test_results.
+Final Year Project Report
+on
 
-6. Dataset
-   - Shows a preview and stats for the included sample dataset and provides a download button.
+Your Project Title Here
 
-How to Run Locally
-------------------
-1. Create a Python environment (recommended Python 3.10+).
-2. Install dependencies from requirements.txt. Example (PowerShell):
-   python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt
+Submitted By:	Student Name (Reg. no.)
 
-3. Run the app with Streamlit (PowerShell):
-   streamlit run "e:\\Bilal project files\\Project Interface Advance\\app.py"
+Supervised By:	Supervisor Name
 
-4. Open the Streamlit URL printed in the terminal (usually http://localhost:8501) in your browser.
 
-Notes on Dependencies
----------------------
-- Core: streamlit, pandas, numpy, scikit-learn, matplotlib, seaborn (optional), joblib
-- Imbalanced learning: imbalanced-learn (imblearn)
-- For very large datasets, the app uses chunked reading and light previews to avoid memory issues.
-- See requirements.txt for exact pinned versions. If the file is missing or incomplete, run pip install streamlit scikit-learn pandas numpy matplotlib imbalanced-learn joblib
+BACHELOR 
+IN 
+COMPUTER SCIENCE
 
-Model Artifacts and Reproducibility
------------------------------------
-- model_artifacts (dict) saved by the app contains:
-  - 'model': trained classifier (could be VotingClassifier / StackingClassifier / single estimator)
-  - 'scaler1' and 'scaler2': RobustScaler and StandardScaler instances
-  - 'drop_cols': columns to drop on new inputs (timestamp, flow_id, etc.)
-  - 'cat_cols': categorical columns expected (used for get_dummies during training)
-  - 'label_encoder': LabelEncoder instance or None
-  - 'feature_names': ordered list of features expected by the model
-  - 'training_dataset_path' (optional): path to the dataset used for training
 
-- To reproduce predictions exactly, load the saved artifacts and use the same preprocess, encoding, and scaling steps in the same order.
 
-Security & Privacy Notes
-------------------------
-- The app currently contains hardcoded credentials. Replace the authentication mechanism (e.g., use an environment-based secret or proper auth) before deploying.
-- Be cautious with uploaded datasets—store them in a secure folder and avoid exposing PII.
+September-2022 
+NATIONAL COLLEGE OF BUSINESS ADMINISTRATION & ECONOMICS 
+Sub-Campus, Multan
 
-Assumptions & Limitations
--------------------------
-- The dataset must contain a 'label' column for supervised training and evaluation.
-- The feature engineering function heavily relies on numeric features; ensure numeric columns are correctly typed.
-- Some samplers or classifiers may change behavior across package versions. If using a different environment, test on a small run first.
-- The pipeline expects the trained model's feature list to be complete and will add missing features as zeros at test time. If the test data contains extra features, they are ignored unless added to the saved feature list.
 
-Troubleshooting Tips
---------------------
-- "Missing 'label' Column" error: ensure the CSV has a 'label' column (case-sensitive).
-- Large dataset memory issue: use a smaller sample for training or increase available memory. The app warns for files >~20MB and provides an opt-in checkbox for loading.
-- Unknown labels at test time: if the test set contains labels unseen during training, metrics will be computed only for known classes; map or re-encode labels consistently.
-- If joblib fails to load saved model: verify matching scikit-learn and imblearn versions.
-- If scaling or predict_proba fails: ensure saved artifact keys ('scaler1','scaler2','feature_names') exist and match the app's expected structure.
+Project Title Here
 
-Useful Commands (PowerShell)
----------------------------
-# Create and activate venv
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-# Install dependencies
-pip install -r requirements.txt
-# Run Streamlit app
-streamlit run "e:\\Bilal project files\\Project Interface Advance\\app.py"
+BY
 
-Where to Edit
--------------
-- `app.py`: Modify UI, adjust training hyperparameters, or change preprocessing logic.
-  - ultra_clean_data(df): change cleaning thresholds, imputation strategy, or outlier clipping rules.
-  - create_advanced_features(X, y): adjust the number and types of engineered features.
-  - Sidebar settings: default n_estimators, balancing method, feature-engineering toggle.
+STUDENT NAME
+_____________________________________________________________________
 
-Next Steps & Suggestions
-------------------------
-- Replace hardcoded login with a secure authentication method.
-- Add unit tests for the preprocessing functions (ultra_clean_data and create_advanced_features).
-- Add a small sample test script that loads the saved 'trained_threat_model.pkl' and runs predictions on a sample CSV to verify artifact compatibility.
-- Consider exporting model as a lightweight ONNX if you plan production deployment with language-agnostic serving.
 
-Contact / Author
-----------------
-Created/edited by: (Your workspace)
-Project file: app.py
+A project submitted to the Department of Computer Science, in partial fulfillment of the requirements for the Degree of
 
-END OF DOCUMENT
+BACHELOR 
+IN 
+COMPUTER SCIENCE
+_____________________________________________________________________
+
+
+Project Defense Committee:
+
+____________________________
+			Chairman 
+
+____________________________
+	Member
+ 
+____________________________
+	Member
+
+											 					 _________________________________
+Pro-Rector
+National College of Business
+Administration & Economics, 
+Multan Sub Campus 
+
+
+
+
+
+
+In the name of ALLAH,
+The Most Beneficent,
+The Most Merciful,
+
+
+ 
+AUTHOR’S DECLARATION 
+
+I, ________ D/S/O -------------, hereby, declare that this work titled “________________________________________________________________” submitted in partial fulfillment of the Degree of Bachelor _________________ at NCBA&E Multan Sub-campus is of my own investigation.  Data, results, ideas, analyses, software and conclusions are my own efforts and if adapted then the sources have been acknowledged properly.
+
+I also submit that this project work has not been submitted for obtaining similar degree from any other university/college.
+
+
+
+
+__________________
+STUDENT NAME
+
+
+
+ 
+National College of Business Administration   & Economics Multan Sub Campus
+
+Northern Bypass Near WAPDA Town Phase-II Multan
+			
+
+			COURSE COMPLETION CERTIFICATE
+
+  
+ Ref. No. R&D/Multan/PD-174-2022/01					Dated: 01-09-2022
+
+	
+It is certified that courses requirement of Ms. STUDENT NAME Registration No. 12133175 for the program Bachelor _____________ has been completed and her current CGPA is 0.00.
+
+
+
+
+
+
+
+
+
+
+
+M. Asim Rajwana				       Prof. Dr. Tariq Mahmood Ansari, FRSC
+Deputy Director Research							           Pro-Rector 
+					
+
+
+
+
+
+Copy to:
+
+1.	The Rector, NCBA&E Lahore
+2.	The Director, NCBA&E Multan Campus.
+3.	Notification file.
+ 
+PROJECT/RESEARCH COMPLEITION CERTIFICATE
+
+It is certified that the project work contained in this thesis entitled “Your Project Title Here” has been carried out and completed by Student Name under my supervision during her BSCS Degree program.
+
+
+
+_________________
+Supervisor Name
+(Supervisor)
+
+
+ 
+DECLARATION
+
+
+This is to certify that this research work has not been submitted for obtaining similar degree from any other university/college.
+
+
+
+						(NAME OF THE STUDNET)
+								   February, 2009. 
+
+
+ 
+DEDICATED TO
+
+
+My father who had always been a source of inspiration for me.
+My Family and Teachers
+
+
+ 
+Abstract
+Abstract of the project here.
+
+ 
+
+ACKNOWLEDGEMENT
+I am thankful to Almighty Allah and SWT Who gave me strength to complete my work and blessed me in whole life. I dedicate this humble effort to my Prophet Muhammad (PBUH) who is a torch of knowledge and wisdom for the whole mankind. I would like to express my gratitude to my worthy Supervisor __________, for sharing his ideas and interests with me about my project. His contribution boosted my confidence and helped me in finishing my study in time.
+I am thankful to my parents and all family members for their love, support and encouragement to seek knowledge. I would also like to thank faculty members and administrative officers of NCBA&E Multan sub campus who cooperated with me in order to make this project successful, I also want to show my gratefulness to all the participants who spared their precious time in answering my questionnaires.
+	
+
+
+______________
+Student Name
+
+
+ 
+Table of Contents
+Contents
+Multan Sub Campus	ii
+AUTHOR’S DECLARATION	iv
+COURSE COMPLETION CERTIFICATE	v
+PROJECT/RESEARCH COMPLEITION CERTIFICATE	vi
+DECLARATION	vii
+DEDICATED TO	viii
+ACKNOWLEDGEMENT	ix
+LIST OF TABLES	xiii
+LIST OF FIGURES	xiv
+PAGE SIZE AND FORMAT	xvi
+CHAPTER 1	xix
+INTRODUCTION	xix
+1.1 Purpose	xix
+1.2 Scope	xix
+1.3 Objectives	xix
+1.4 Overview	xix
+1.5 Reference Material	xix
+1.6 Definitions, Acronyms, and Abbreviations	xix
+CHAPTER 2	xix
+SYSTEM OVERVIEW	xix
+2.1 System Description	xix
+2.2 System Context	xix
+2.3 Major Constraints	xix
+2.4 Assumptions and Dependencies	xix
+2.5 Technology Stack	xx
+2.6 System Environment / Deployment Context	xx
+2.7 System Requirements Summary	xx
+2.8 Modules Overview	xx
+CHAPTER 3	xx
+SYSTEM ARCHITECTURE	xx
+3.1 Architectural Design	xx
+3.1.1 Decomposition Description	xx
+3.2 Behavioral and Structural Views	xx
+  3.2.1 Use Case Diagrams	xx
+  3.2.2 Sequence Diagrams	xx
+  3.2.3 Class / Component Diagrams	xx
+  3.2.4 Activity Diagrams	xx
+  3.2.5 Data Flow Diagrams (DFD)	xx
+  3.2.6 Entity-Relationship (ER) Diagram	xx
+  3.2.7 State Transition Diagram (if applicable)	xx
+3.3 Architectural Rationale	xxi
+CHAPTER 4	xxi
+DATA DESIGN	xxi
+4.1 Data Description	xxi
+4.2 Data Objects and Attributes	xxi
+4.3 Database Schema / ER Diagram	xxi
+4.4 Data Dictionary	xxi
+4.5 File Structure / Data Storage (if applicable)	xxi
+CHAPTER 5	xxi
+COMPONENT DESIGN	xxi
+5.1 Component Identification	xxi
+5.2 Component Interfaces	xxi
+5.3 Internal Logic / Algorithms	xxi
+5.4 Hardware Component Design (if applicable)	xxi
+5.5 Component-Level Diagrams	xxii
+CHAPTER 6	xxii
+HUMAN INTERFACE DESIGN	xxii
+6.1 User Interface Overview	xxii
+6.2 Screen Layouts / Wireframes	xxii
+6.3 Navigation Flow	xxii
+6.4 Hardware Interface (if applicable)	xxii
+CHAPTER 7	xxii
+SYSTEM IMPLEMENTATION AND TESTING	xxii
+7.1 Implementation Overview	xxii
+7.2 Testing Strategy	xxii
+7.3 Test Cases / Results	xxii
+7.4 Validation and Verification	xxii
+CHAPTER 8	xxiii
+CONCLUSION AND FUTURE WORK	xxiii
+8.1 Conclusion	xxiii
+8.2 Limitations	xxiii
+8.3 Future Enhancements	xxiii
+REFERENCES	xxiii
+APPENDICES (Optional)	xxiii
+Appendix A – Additional Diagrams or Algorithms	xxiii
+Appendix B – User Manuals or Interface Snapshots	xxiii
+Appendix C – Hardware Datasheets / Schematics	xxiii
+Appendix D – Source Code Snippets	xxiii
+REFERENCES	xxiv
+APPENDICES (Optional)	xxiv
+
+
+ 
+LIST OF TABLES
+
+
+TABLE NO.	TITLE	PAGE
+3.1	Distribution of SME’s by Sectors in States	69
+3.2	Summary of the variables those were used in this study, their sources and number of items	71
+3.3	Measures of Harmonious Passion and Obsessive Passion Constructs	72
+3.4	Measures of Mastery, Performance Approach and Performance Avoidance Goals Constructs	73
+3.5	Measures of Creativity Construct	75
+3.6	Measures of Independence Construct	76
+3.7	Measures of Ambition Construct	76
+3.8	Measures of Daring Construct	77
+3.9	Scale Reliability	79
+3.10	Goodness-of-Fit Indices Criterion 	97
+4.1	Sample Response	111
+ 
+LIST OF FIGURES
+
+FIGURE NO.                                 TITLE
+	PAGE
+2.1	Western Framework for the Relationship between Values.	26
+2.2	Relationship between Entrepreneurial passion and behavioral engagements.	27
+2.3	Relationship between Entrepreneurial Passion, Achievement Motivation Goals and Behavioral Engagements.	32
+2.4	Burke’s control-view of Identity Process. 	42
+2.5	The Relationship between Entrepreneurial Passion and Behavioral Engagement with Mediating Affect of Achievement Goals.	48
+3.1	Distribution (%) of SME’s by States in Malaysia.	68
+ 
+
+ 
+PAGE SIZE AND FORMAT
+1- Paper and Size  
+White simile 80 gram high quality A4 size papers (210 × 297 mm) should be used. 
+ 2- Margin 
+ All pages should be set with the same margin. The left margin should be 4 cm (for binding purposes) and 2.5 cm for the top, right and bottom margins. 
+3- Pagination 
+ Each page of a thesis must be counted and numbered. Pages should be numbered consecutively. The page numbers should be printed at the bottom right hand corner, 1.25 cm from the top edge and 2.5 cm from the right edge. Numbering should be as follows:  
+(i)	Preliminary pages of a thesis, starting from the title page should be numbered using small letter Roman numeric (i, ii, iii, etc.); the texts should be numbered using Arabic numeric (1, 2, 3, etc. ).  
+(ii)	The first page should be the title page. This page should be counted “í” but should not be printed.  
+(iii)	The first page of the text should be counted “1” but the number should not be printed. Similarly, the first page of all chapters should be counted but the numbers should not be printed.  
+(iv)	 If a thesis is made up of a number of parts, separating pages can be inserted but these pages should not be counted and numbered.  
+ 
+4- Numbering the Chapters and Sub-sections  
+ All chapters and their sub-sections must be labelled and numbered. The chapters are numbered using Arabic numeric, i.e. Chapter 1, Chapter 2, Chapter 3, and so on. The sub-sections should not be indented but arranged in a structured manner not more than four levels as follows:  
+ 1- First level (Title of the chapter) 
+2- Second level (Title of the sub-section) 
+3- Third level (Title of the sub-sub-section) 
+4- Fourth level (Title of the sub-sub-sub-section)      
+ If the length of a title of a chapter or any level is more than one line, same line spacing as in the text should be used. Sub-sections beyond level four should be labelled using characters. Examples are shown in Appendices T and U. 
+ If a thesis is divided into parts, separation sheets should be used to separate them. The separation sheets should be printed with capital letters, i.e. PART 1, PART 2, PART 3, and so on. 
+5-Typing 
+ A thesis should be typed using word or text processor.  Font type and size that are commonly used for printed academic materials should be used. The same font type should be used throughout the thesis. The character size should not be less than 0.2 cm for capital letters and 0.15 cm for small letters.  If Microsoft Word is used, font type Times New Roman with font size 12 or bigger should be used. One and a half line spacing should be used. The text must be printed on one side only. 
+ The title of a chapter should be typed using capital letters and centred.  A new chapter must start on a new page. Chapters and their sub-sections must be given titles. The titles should be typed using bold letters and should not be underlined. 
+ 
+6- Spacing and Format  
+ The following guidelines should be observed:  
+(i)	The spacing between the top margin and the chapter number should be 2.5 cm;  
+(ii)	The spacing between the chapter number and the title, and between the title and the first line of a text should be four (4) line spacing;  
+(iii)	The spacing between the last line of a text with the title of a sub-section should be four (4) line spacing;  
+(iv)	The spacing between the title of a sub-section and the first line of a text should be two (2) line spacing;  
+(v)	The spacing between paragraphs should be two (2) line spacing;  
+(vi)	The number and the title of sub-section should be aligned with the left margin;  
+(vii)	The first line of a paragraph should be indented by 1.27 cm (0.5 inch) from the left margin;  
+(viii)	A new paragraph should not begin on the last line of a page;  
+(ix)	The spacing between the last line of a text and a table, or a figure or an illustration should be two (2) line spacing;  
+(x)	The spacing after a full stop should be two (2) character spacing.  
+(xi)	The spacing after a comma (,) should be one (1) character spacing. 
+7- Computer Printed Copy  
+ A thesis should be typed using word or text processors for fast and easy editing. Hardcopy should be produced using a laser printer or similar quality machines. 
+ 
+ 
+ 8- Lettering and Drawing  
+ Lettering and drawing must be clear and should be reproducible satisfactorily without loss of any information.  
+
+ 
+CHAPTER 1 
+INTRODUCTION
+1.1 Purpose
+	State the main purpose of this document and system being designed.
+1.2 Scope
+	Describe the scope, system boundaries, and major features.
+1.3 Objectives
+	List key goals or expected outcomes of the project.
+1.4 Overview
+	Briefly explain the structure of this document.
+1.5 Reference Material
+	Mention any relevant papers, books, or standards.
+1.6 Definitions, Acronyms, and Abbreviations
+Define key terms used.
+
+CHAPTER 2 
+SYSTEM OVERVIEW
+2.1 System Description
+	High-level description of the system and its purpose.
+2.2 System Context
+	Describe how the system interacts with its environment.
+2.3 Major Constraints
+	Outline major constraints (hardware, time, cost, etc.).
+2.4 Assumptions and Dependencies
+	List important assumptions made.
+2.5 Technology Stack
+	Specify languages, frameworks, and platforms used.
+2.6 System Environment / Deployment Context
+	Describe operating environment and deployment setup.
+2.7 System Requirements Summary
+	Summarize key functional/non-functional requirements.
+2.8 Modules Overview
+	List all modules/components with short descriptions.
+
+CHAPTER 3 
+SYSTEM ARCHITECTURE
+3.1 Architectural Design
+	Describe data input/output formats.
+3.1.1 Decomposition Description
+	Explain how system is divided into modules.
+3.2 Behavioral and Structural Views
+	Include relevant UML diagrams such as:
+  3.2.1 Use Case Diagrams
+  3.2.2 Sequence Diagrams
+  3.2.3 Class / Component Diagrams
+  3.2.4 Activity Diagrams
+  3.2.5 Data Flow Diagrams (DFD)
+  3.2.6 Entity-Relationship (ER) Diagram
+  3.2.7 State Transition Diagram (if applicable)
+3.3 Architectural Rationale
+	Explain why this design/architecture was chosen.
+
+CHAPTER 4 
+DATA DESIGN
+4.1 Data Description
+	Describe data input/output formats.
+4.2 Data Objects and Attributes
+	Define key data entities and their attributes.
+4.3 Database Schema / ER Diagram
+	Provide data model and relationships.
+4.4 Data Dictionary
+	Define database tables, columns, and datatypes.
+4.5 File Structure / Data Storage (if applicable)
+	For hardware/embedded systems.
+
+CHAPTER 5 
+COMPONENT DESIGN
+5.1 Component Identification
+	List and briefly describe system components.
+5.2 Component Interfaces
+	Describe input/output and APIs of each component.
+5.3 Internal Logic / Algorithms
+	Provide logic or pseudocode for major modules.
+5.4 Hardware Component Design (if applicable)
+	Include circuit diagrams, sensors, etc. (if applicable).
+5.5 Component-Level Diagrams
+	Provide class or block diagrams at detailed level.
+
+CHAPTER 6 
+HUMAN INTERFACE DESIGN
+6.1 User Interface Overview
+	Explain UI philosophy and objectives.
+6.2 Screen Layouts / Wireframes
+	Attach mockups or UI screens.
+6.3 Navigation Flow
+	Describe how users navigate between screens.
+6.4 Hardware Interface (if applicable)
+	Describe any physical interface (buttons, sensors, etc.).
+
+CHAPTER 7 
+SYSTEM IMPLEMENTATION AND TESTING
+7.1 Implementation Overview
+	Describe how modules were implemented and integrated.
+7.2 Testing Strategy
+	Outline testing types (unit, integration, system, user testing).
+7.3 Test Cases / Results
+	Provide representative test cases with expected vs. actual outcomes.
+7.4 Validation and Verification
+	Discuss how design meets system requirements.
+
+CHAPTER 8 
+CONCLUSION AND FUTURE WORK
+8.1 Conclusion
+	Summarize project outcomes and performance.
+8.2 Limitations
+	Describe any system constraints or issues faced.
+8.3 Future Enhancements
+	Suggest potential improvements or extensions.
+
+REFERENCES
+List all references in IEEE or APA format (books, research papers, websites, etc.).
+
+
+
+APPENDICES (Optional)
+Appendix A – Additional Diagrams or Algorithms
+Appendix B – User Manuals or Interface Snapshots
+Appendix C – Hardware Datasheets / Schematics
+Appendix D – Source Code Snippets
+
+
+ 
+REFERENCES
+List all references in IEEE or APA format (books, research papers, websites, etc.).
+APPENDICES (Optional)
+Appendix A – Additional Diagrams or Algorithms
+Appendix B – User Manuals or Interface Snapshots
+Appendix C – Hardware Datasheets / Schematics
+Appendix D – Source Code Snippets
+
