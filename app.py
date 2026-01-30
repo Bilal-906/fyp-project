@@ -173,15 +173,15 @@ def ultra_clean_data(df):
 
 
 def create_advanced_features(X, y):
-    """Create advanced engineered features for 90%+ accuracy"""
+    """Create advanced engineered features (optimized for speed)"""
     try:
-        st.write("### ⚡ ADVANCED FEATURE ENGINEERING")
+        st.write("### ⚡ ADVANCED FEATURE ENGINEERING (FAST MODE)")
         
         numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
         
         if len(numeric_cols) >= 2:
-            # Select top features
-            k_best = min(20, len(numeric_cols))
+            # Select top features (reduced for speed)
+            k_best = min(15, len(numeric_cols))
             selector = SelectKBest(mutual_info_classif, k=k_best)
             selector.fit(X[numeric_cols], y)
             top_features = [numeric_cols[i] for i in selector.get_support(indices=True)]
@@ -190,39 +190,26 @@ def create_advanced_features(X, y):
             
             feature_count = 0
             
-            # Interaction features
-            for i in range(min(8, len(top_features))):
-                for j in range(i+1, min(i+5, len(top_features))):
+            # Interaction features (reduced - only 3 combinations instead of 8)
+            for i in range(min(5, len(top_features))):
+                for j in range(i+1, min(i+3, len(top_features))):
                     col1, col2 = top_features[i], top_features[j]
                     
-                    # Multiplication
+                    # Only multiplication (fastest)
                     X[f'{col1}_x_{col2}'] = X[col1] * X[col2]
-                    
-                    # Safe division
-                    X[f'{col1}_div_{col2}'] = X[col1] / (np.abs(X[col2]) + 1e-8)
-                    
-                    # Addition & Subtraction
-                    X[f'{col1}_plus_{col2}'] = X[col1] + X[col2]
-                    X[f'{col1}_minus_{col2}'] = X[col1] - X[col2]
-                    
-                    feature_count += 4
+                    feature_count += 1
             
-            # Polynomial features
-            for col in top_features[:10]:
+            # Polynomial features (reduced - only square, no sqrt/log)
+            for col in top_features[:5]:
                 X[f'{col}_sq'] = X[col] ** 2
-                X[f'{col}_sqrt'] = np.sqrt(np.abs(X[col]))
-                X[f'{col}_log'] = np.log1p(np.abs(X[col]))
-                feature_count += 3
+                feature_count += 1
             
-            # Statistical aggregations
+            # Statistical aggregations (fast)
             X['row_mean'] = X[top_features].mean(axis=1)
-            X['row_std'] = X[top_features].std(axis=1)
             X['row_max'] = X[top_features].max(axis=1)
-            X['row_min'] = X[top_features].min(axis=1)
-            X['row_range'] = X['row_max'] - X['row_min']
-            feature_count += 5
+            feature_count += 2
             
-            st.write(f"✅ Created {feature_count} engineered features")
+            st.write(f"✅ Created {feature_count} engineered features (optimized)")
         
         return X
         
@@ -385,11 +372,11 @@ else:
         
         n_estimators = st.sidebar.slider(
             "🌲 Number of Trees",
-            min_value=100,
-            max_value=1000,
-            value=300,
-            step=100,
-            help="More trees = better accuracy but slower training"
+            min_value=50,
+            max_value=300,
+            value=100,
+            step=50,
+            help="Reduced range for faster training (50-300 trees)"
         )
         
         if uploaded_file:
@@ -542,16 +529,12 @@ else:
                                 stratify=y_encoded
                             )
                             
-                            # Step 7: Scale features
-                            st.write("⚖️ Scaling features with RobustScaler + StandardScaler...")
-                            scaler1 = RobustScaler()
-                            scaler2 = StandardScaler()
+                            # Step 7: Scale features (single scaler for speed)
+                            st.write("⚖️ Scaling features with StandardScaler...")
+                            scaler = StandardScaler()
                             
-                            X_train_scaled = scaler1.fit_transform(X_train)
-                            X_train_scaled = scaler2.fit_transform(X_train_scaled)
-                            
-                            X_test_scaled = scaler1.transform(X_test)
-                            X_test_scaled = scaler2.transform(X_test_scaled)
+                            X_train_scaled = scaler.fit_transform(X_train)
+                            X_test_scaled = scaler.transform(X_test)
                             
                             # Step 8: Balance classes
                             st.write(f"⚖️ Balancing classes using {balance_method}...")
@@ -581,63 +564,65 @@ else:
                             models = {
                                 'Random Forest': RandomForestClassifier(
                                     n_estimators=n_estimators,
-                                    max_depth=None,
-                                    min_samples_split=2,
-                                    min_samples_leaf=1,
+                                    max_depth=15,
+                                    min_samples_split=5,
+                                    min_samples_leaf=2,
                                     max_features='sqrt',
                                     bootstrap=True,
                                     class_weight='balanced_subsample',
                                     criterion='gini',
                                     random_state=42,
-                                    n_jobs=1
+                                    n_jobs=-1
                                 ),
                                 'Extra Trees': ExtraTreesClassifier(
                                     n_estimators=n_estimators,
-                                    max_depth=None,
-                                    min_samples_split=2,
-                                    min_samples_leaf=1,
+                                    max_depth=15,
+                                    min_samples_split=5,
+                                    min_samples_leaf=2,
                                     max_features='sqrt',
                                     bootstrap=True,
                                     class_weight='balanced_subsample',
                                     criterion='gini',
                                     random_state=42,
-                                    n_jobs=1
+                                    n_jobs=-1
                                 ),
                                 'Gradient Boosting': GradientBoostingClassifier(
-                                    n_estimators=min(500, n_estimators),
-                                    learning_rate=0.05,
-                                    max_depth=12,
-                                    min_samples_split=2,
-                                    subsample=0.85,
+                                    n_estimators=min(150, n_estimators),
+                                    learning_rate=0.1,
+                                    max_depth=8,
+                                    min_samples_split=5,
+                                    subsample=0.9,
                                     max_features='sqrt',
-                                    random_state=42
+                                    random_state=42,
+                                    validation_fraction=0.1,
+                                    n_iter_no_change=5
                                 ),
                                 'AdaBoost': AdaBoostClassifier(
-                                    n_estimators=min(300, n_estimators),
+                                    n_estimators=min(150, n_estimators),
                                     learning_rate=0.8,
                                     algorithm='SAMME',
                                     random_state=42
                                 ),
                                 'Bagging Ensemble': BaggingClassifier(
                                     estimator=RandomForestClassifier(
-                                        n_estimators=100,
-                                        max_depth=25,
+                                        n_estimators=50,
+                                        max_depth=15,
                                         class_weight='balanced',
                                         random_state=42,
-                                        n_jobs=1
+                                        n_jobs=-1
                                     ),
-                                    n_estimators=50,
+                                    n_estimators=30,
                                     max_samples=0.8,
                                     max_features=0.8,
                                     bootstrap=True,
                                     random_state=42,
-                                    n_jobs=1
+                                    n_jobs=-1
                                 )
                             }
                             
                             results = {}
                             trained_models = []
-                            total_models = len(models) + 2  # +2 for voting and stacking
+                            total_models = len(models)
                             
                             for idx, (name, model) in enumerate(models.items()):
                                 status_text.text(f"⚙️ Training {name}... ({idx+1}/{total_models})")
@@ -660,8 +645,8 @@ else:
                             voting_model = VotingClassifier(
                                 estimators=trained_models,
                                 voting='soft',
-                                weights=[2, 2, 1.5, 1, 1],
-                                n_jobs=1
+                                weights=[2, 2, 1, 1],
+                                n_jobs=-1
                             )
                             voting_model.fit(X_train_bal, y_train_bal)
                             
@@ -686,7 +671,7 @@ else:
                                     class_weight='balanced'
                                 ),
                                 cv=5,
-                                n_jobs=1,
+                                n_jobs=-1,
                                 passthrough=False
                             )
                             stacking_model.fit(X_train_bal, y_train_bal)
@@ -726,8 +711,7 @@ else:
                             }
                             st.session_state.model_artifacts = {
                                 'model': best_model,
-                                'scaler1': scaler1,
-                                'scaler2': scaler2,
+                                'scaler': scaler,
                                 'drop_cols': drop_cols,
                                 'cat_cols': cat_cols,
                                 'label_encoder': le,
@@ -978,8 +962,7 @@ else:
                                 test_df_clean = test_df_clean[artifacts['feature_names']]
                                 
                                 # Scale
-                                X_test_scaled = artifacts['scaler1'].transform(test_df_clean)
-                                X_test_scaled = artifacts['scaler2'].transform(X_test_scaled)
+                                X_test_scaled = artifacts['scaler'].transform(test_df_clean)
                                 
                                 # Predict
                                 predictions = artifacts['model'].predict(X_test_scaled)
