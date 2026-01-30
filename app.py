@@ -600,7 +600,6 @@ else:
                                 'AdaBoost': AdaBoostClassifier(
                                     n_estimators=min(150, n_estimators),
                                     learning_rate=0.8,
-                                    algorithm='SAMME',
                                     random_state=42
                                 ),
                                 'Bagging Ensemble': BaggingClassifier(
